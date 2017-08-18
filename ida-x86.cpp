@@ -241,10 +241,10 @@ static Expression_ptr FromOperand(insn_t& insn, int operand/*,
 					}
 					else if(isOff(getFlags(insn.ea), operand))
 					{
-						char buf[1024];
-						if(get_name(BADADDR, address, buf, 1024))
+						qstring buf;
+						if(get_ea_name(&buf, address))
 						{
-							result.reset( new GlobalVariable(buf));
+							result.reset( new GlobalVariable(buf.c_str()));
 							break;
 						}
 					}
@@ -389,7 +389,7 @@ msg("\ninsn.ez = %a op.segrg = %d\n", insn.ea, op.segrg);
                 msg("\noperand = %d, op.value_shorts.low = %a, op.value_shorts.high = %a, op.addr = %a, insn.ea = %a, op.type = %d op.hasSIB = %d, op.phrase = %d, op.flags = %x op.dtyp = %d\n", operand, op.value_shorts.low,op.value_shorts.high, op.addr, insn.ea, op.type, op.hasSIB, op.phrase, op.flags, op.dtyp);
 				if (1)//0 != op.addr)
 				{
-				    char buf[1024];
+				    qstring buf;
 				    bool gotname = false;
                     xrefblk_t xr;
                     for(bool ok = xr.first_from(insn.ea, XREF_DATA); ok; ok = xr.next_from())
@@ -397,7 +397,7 @@ msg("\ninsn.ez = %a op.segrg = %d\n", insn.ea, op.segrg);
                         msg("\ndata xref =%a\n", xr.to);
                         if(!xr.iscode)
                         {
-                            if(get_name(BADADDR, xr.to, buf, 1024))
+                            if(get_ea_name(&buf, xr.to))
                                 gotname = true;
                             break;
                         }
@@ -407,7 +407,7 @@ msg("\ninsn.ez = %a op.segrg = %d\n", insn.ea, op.segrg);
                         result.reset( new BinaryExpression(
                             result,
                             "+",
-                            Expression_ptr( new GlobalVariable(buf) ))
+                            Expression_ptr( new GlobalVariable(buf.c_str()) ))
                             );
                     }
                     else
@@ -1892,15 +1892,28 @@ for(bool ok = xr.first_from(insn.ea, XREF_ALL); ok; ok = xr.next_from())
 
 			CallExpression* call = new CallExpression(e);
 
-			qtype type, fnames;
-			get_tinfo(callee, &type, &fnames);
-			func_type_info_t fi;
-			build_funcarg_info(idati, type.c_str(), fnames.c_str(), &fi, 0);
-			msg("func type = %s, fnames = %s fi.cc = %d\n", type.c_str(), fnames.c_str(), fi.cc);
-			char buf[1024];
-			print_type(callee, buf, 1024, true);
-			msg("func type string = %s\n", buf);
-			call->CallingConvention(fi.cc);
+			//qtype type, fnames;
+			//get_tinfo(callee, &type, &fnames);
+			//func_type_info_t fi;
+			//build_funcarg_info(idati, type.c_str(), fnames.c_str(), &fi, 0);
+			//msg("func type = %s, fnames = %s fi.cc = %d\n", type.c_str(), fnames.c_str(), fi.cc);
+			//char buf[1024];
+			//print_type(callee, buf, 1024, true);
+			//msg("func type string = %s\n", buf);
+
+            tinfo_t type;
+            //if(!get_tinfo(call->Address(), &type, &fnames))
+            if(!get_tinfo2(callee, &type))
+            {
+                message("No type information for function at %p!\n",
+                        call->Address());
+                return;
+            }
+
+            func_type_data_t func_type_data;
+            type.get_func_details(&func_type_data);
+
+			call->CallingConvention(func_type_data.get_cc());
 
 
 			if (call->IsCdecl())

@@ -328,7 +328,7 @@ char wanted_hotkey[] = "Ctrl-F10";
 //
 //--------------------------------------------------------------------------
 
-extern "C" plugin_t PLUGIN;
+//extern "C" plugin_t PLUGIN;
 
 plugin_t PLUGIN = {
   IDP_INTERFACE_VERSION,

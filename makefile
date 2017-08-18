@@ -13,7 +13,6 @@ O11=ida-x86
 O12=collateexpr
 O13=collatenode
 O14=controlflow
-O15=desquirr
 include ../plugin.mak
 
 CFLAGS+=-I/Users/efry/Apps/Build/boost_1_64_0 -DBOOST_NO_TYPEID

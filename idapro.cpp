@@ -24,6 +24,7 @@
 #include "idapro.hpp"
 #include "instruction.hpp"
 #include "analysis.hpp"
+#include <funcs.hpp>
 
 #include <memory>
 #include "frame.hpp"
@@ -66,9 +67,9 @@ std::string get_struct_path(struc_t *struc, int offset, int *pIndex)
 			else
 				buffer << '.';
 
-			char tmp[256];
-			if (get_member_name(member->id, tmp, 256)>0)
-				buffer << tmp;
+			qstring member_name;
+			if (get_member_name2(&member_name, member->id)>0)
+				buffer << member_name.c_str();
 			else
 				buffer << "NO_NAME";
 
@@ -127,16 +128,15 @@ std::string GetStackVariableName(const insn_t &insn, int operand, int* pIndex)/*
 std::string GetGlobalCodeLabel(ea_t ea, int *pIndex)/*{{{*/
 {
     // return funcname + offset
-    char name[MAXSTR];
-
+	qstring name;
     func_t *func= get_func(ea);
     if (func==NULL) {
         message("%p Warning: referenced code offset not in a function\n", ea);
         return "";
     }
-    if (get_func_name(ea, name, MAXSTR)) {
+    if (get_func_name2(&name, ea)>0) {
         *pIndex= ea - func->startEA;
-        return std::string(name);
+        return std::string(name.c_str());
     }
     else {
         message("%p Warning: referenced code offset not in a function\n", ea);
@@ -147,18 +147,18 @@ std::string GetGlobalCodeLabel(ea_t ea, int *pIndex)/*{{{*/
 // returns name such that get_name_ea(ea - *pIndex) == name
 std::string GetLocalCodeLabel(ea_t ea, int *pIndex)/*{{{*/
 {
-    char name[MAXSTR];
+	qstring name;
 
     func_t* pfn= get_func(ea);
     func_item_iterator_t fii;
     for ( bool ok=fii.set(pfn, ea); ok; ok=fii.prev_addr() ) {
         ea_t lea = fii.current();
 
-        if (get_name(ea, lea, name, sizeof(name))) {
+        if (get_ea_name(&name, ea)) {
             *pIndex= ea-lea;
 			if (*pIndex)
-				message("Unexpected locallabel with name=%s index=%d\n", name, *pIndex);
-            return std::string(name);
+				message("Unexpected locallabel with name=%s index=%d\n", name.c_str(), *pIndex);
+            return std::string(name.c_str());
         }
 		else {
 			break;
@@ -242,24 +242,24 @@ std::string GetGlobalVariableName(ea_t ea, int* pIndex)/*{{{*/
     }
 */
     else {
-        char name[MAXSTR];
+        qstring name;
 		msg("get_name at %a\n", ea);
-        if (get_name(BADADDR, ea, name, sizeof(name))) {
-            return name;
+        if (get_ea_name(&name, ea)) {
+            return name.c_str();
         }
         else {
 			ea_t head= prev_head(ea, 0);
 
-			std::string headname; headname.resize(MAXSTR);
-			if (!get_name(BADADDR, head, &headname[0], headname.size())) {
-				headname.resize(qsnprintf(&headname[0], headname.size(), "gvar_%X", head));
+			qstring headname; //headname.resize(MAXSTR);
+			if (!get_ea_name(&headname, head, 0, NULL)) {
+				//headname.resize(qsnprintf(&headname[0], headname.size(), "gvar_%X", head));
 			}
 			else {
 				headname.resize(strlen(&headname[0]));
 			}
 			tid_t tid= get_strid(head);
 			struc_t *struc= get_struc(tid);
-			return headname + "." + get_struct_path(struc, ea-head, pIndex);
+			return std::string(headname.c_str()) + "." + get_struct_path(struc, ea-head, pIndex);
         }
     }
 }/*}}}*/
@@ -387,19 +387,23 @@ void IdaPro::LoadCallTypeInformation(CallExpression* call)
 	if (BADADDR == call->Address())
 		return;
 
-	qtype type, fnames;
-
-	if(!get_tinfo(call->Address(), &type, &fnames))
+	//qtype type, fnames;
+	tinfo_t type;
+	//if(!get_tinfo(call->Address(), &type, &fnames))
+	if(!get_tinfo2(call->Address(), &type))
 	{
 		message("No type information for function at %p!\n", 
 			call->Address());
 		return;
 	}
 
-	func_type_info_t fi;
-	int a = build_funcarg_info(idati, type.c_str(), fnames.c_str(), &fi, 0);
-	call->CallingConvention(fi.cc);
-	call->ParameterCount(a);
+	func_type_data_t func_type_data;
+	type.get_func_details(&func_type_data);
+
+	//func_type_info_t fi;
+	//int a = build_funcarg_info(idati, type.c_str(), fnames.c_str(), &fi, 0);
+	call->CallingConvention(func_type_data.get_cc());//fi.cc);
+	call->ParameterCount(func_type_data.size()); //FIXME a);
 
 
 /*
