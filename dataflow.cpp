@@ -22,236 +22,257 @@
 // $Id: dataflow.cpp,v 1.6 2007/01/30 09:48:19 wjhengeveld Exp $
 #include "idainternal.hpp"
 #include "dataflow.hpp"
-#include "node.hpp"
 #include "idapro.hpp"
 #include "ida-x86.hpp"
 
 bool DataFlowAnalysis::RemoveUnusedDefinition()/*{{{*/
 {
-	BoolArray& def = Instr()->Definitions();
+    BoolArray &def = Instr()->Definitions();
 
-	for (int reg = 0; reg < BoolArray::SIZE; reg++)
-	{
-		// Is register i is defined here?
-		if (def.Get(reg))
-		{
-			// Are there no uses of this definition?
-			if (Instr()->DefinitionHasNoUses(reg) &&
-					!(Instr()->IsLastDefinition(reg) && 
-						Node()->InLiveOut(reg)))
-			{
-				if (Instr()->RemoveDefinition(reg))
-				{
-					// We can remove the whole instruction!
+    for (int reg = 0; reg < BoolArray::SIZE; reg++)
+    {
+        // Is register i is defined here?
+        if (def.Get(reg))
+        {
+            // Are there no uses of this definition?
+            if (Instr()->DefinitionHasNoUses(reg) &&
+                !(Instr()->IsLastDefinition(reg) &&
+                  Node()->InLiveOut(reg)))
+            {
+                if (Instr()->RemoveDefinition(reg))
+                {
+                    // We can remove the whole instruction!
 //					message("%p Wow! Removing instruction!\n", Instr()->Address());
-					Erase(Iterator());
-					return true;
-				}
-			}
-		}		
-	}
-	return false;
+                    Erase(Iterator());
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
 }/*}}}*/
 
 // ReplaceRegisterExpression {{{
 class ReplaceRegisterExpressionHelper
 {
-	public:
-		ReplaceRegisterExpressionHelper(
-				unsigned short reg,
-				Expression_ptr replacement)
-			: mReplaceDone(false), mRegister(reg), mReplacement(replacement)
-		{ }
+public:
+    ReplaceRegisterExpressionHelper(
+            unsigned short reg,
+            Expression_ptr replacement)
+            : mReplaceDone(false), mRegister(reg), mReplacement(replacement)
+    {}
 
-		void Replace(Instruction_ptr instruction, int operand)
-		{
-			if (Replace(instruction->Operand(operand)))
-			{
-				instruction->Operand(operand, mReplacement);
-				mReplaceDone = true;
-			}
-		}
+    void Replace(Instruction_ptr instruction, int operand)
+    {
+        if (Replace(instruction->Operand(operand)))
+        {
+            instruction->Operand(operand, mReplacement);
+            mReplaceDone = true;
+        }
+    }
 
-		bool Replace(Expression_ptr parent)
-		{
-			if (parent->IsType(Expression::REGISTER) &&
-					static_cast<Register*>(parent.get())->Index() == mRegister)
-			{
-				return true; /* tell caller to replace the parent! */
-			}
+    bool Replace(Expression_ptr parent)
+    {
+        if (parent->IsType(Expression::REGISTER) &&
+            static_cast<Register *>(parent.get())->Index() == mRegister)
+        {
+            return true; /* tell caller to replace the parent! */
+        }
 
-			for (int i = 0; i < parent->SubExpressionCount(); i++)
-			{
-				if (Replace(parent->SubExpression(i)))
-				{
-					parent->SubExpression(i, mReplacement);
-					mReplaceDone = true;
-					return false;
-				}
-			}
-			return false;
-		}
+        for (int i = 0; i < parent->SubExpressionCount(); i++)
+        {
+            if (Replace(parent->SubExpression(i)))
+            {
+                parent->SubExpression(i, mReplacement);
+                mReplaceDone = true;
+                return false;
+            }
+        }
+        return false;
+    }
 
-		bool ReplaceDone() { return mReplaceDone; }
+    bool ReplaceDone()
+    { return mReplaceDone; }
 
-	private:
-		bool mReplaceDone;
-		unsigned short mRegister;
-		Expression_ptr mReplacement;
+private:
+    bool mReplaceDone;
+    unsigned short mRegister;
+    Expression_ptr mReplacement;
 };
 
 bool ReplaceRegisterExpression(
-		Instruction_ptr instruction,
-		int operand,
-		unsigned short reg,
-		Expression_ptr replacement)
+        Instruction_ptr instruction,
+        int operand,
+        unsigned short reg,
+        Expression_ptr replacement)
 {
-	ReplaceRegisterExpressionHelper helper(reg, replacement);
-	helper.Replace(instruction, operand);
-	return helper.ReplaceDone();
+    ReplaceRegisterExpressionHelper helper(reg, replacement);
+    helper.Replace(instruction, operand);
+    return helper.ReplaceDone();
 }/*}}}*/
 
 bool ReplaceRegister(
-		Instruction_ptr instruction,
-		int operand,
-		unsigned short reg,
-		Expression_ptr replacement)
+        Instruction_ptr instruction,
+        int operand,
+        unsigned short reg,
+        Expression_ptr replacement)
 {
-	Expression_ptr e = instruction->Operand(operand);
+    Expression_ptr e = instruction->Operand(operand);
 
-	if (e->IsType(Expression::REGISTER) &&
-		static_cast<Register*>(e.get())->Index() == reg)
-	{
-		instruction->Operand(operand, replacement);
-		return true;
-	}
-	else
-	{
-		for (int i = 0; i < e->SubExpressionCount(); i++)
-		{
-			Expression_ptr s = e->SubExpression(i);
-			if (s->IsType(Expression::REGISTER) &&
-				static_cast<Register*>(s.get())->Index() == reg)
-			{
-				e->SubExpression(i, replacement);
-				return true;
-			}
-		}
-	}
-	return false;
+    if (e->IsType(Expression::REGISTER) &&
+        static_cast<Register *>(e.get())->Index() == reg)
+    {
+        instruction->Operand(operand, replacement);
+        return true;
+    }
+    else
+    {
+        for (int i = 0; i < e->SubExpressionCount(); i++)
+        {
+            Expression_ptr s = e->SubExpression(i);
+            if (s->IsType(Expression::REGISTER) &&
+                static_cast<Register *>(s.get())->Index() == reg)
+            {
+                e->SubExpression(i, replacement);
+                return true;
+            }
+        }
+    }
+    return false;
 }
-
 
 
 bool FindRegisterInExpression(unsigned short reg, Expression_ptr expression)
 {
-	if (expression->IsType(Expression::REGISTER) &&
-		static_cast<Register*>(expression.get())->Index() == reg)
-	{
-		return true;
-	}
-	else
-	{
-		for (int i = 0; i < expression->SubExpressionCount(); i++)
-		{
-			Expression_ptr s = expression->SubExpression(i);
-			if(FindRegisterInExpression(reg, s) == true)
-				return true;
-		}
-	}
+    if (expression->IsType(Expression::REGISTER) &&
+        static_cast<Register *>(expression.get())->Index() == reg)
+    {
+        return true;
+    }
+    else
+    {
+        for (int i = 0; i < expression->SubExpressionCount(); i++)
+        {
+            Expression_ptr s = expression->SubExpression(i);
+            if (FindRegisterInExpression(reg, s) == true)
+                return true;
+        }
+    }
 
-	return false;
+    return false;
 }
 
 bool IsRegisterDefinedBetweenAddresses(unsigned short reg, Addr start, Addr end, Instruction_list instructions)
 {
-	Instruction_list::iterator item;
-	for(item = instructions.begin(); item != instructions.end(); item++)
-	{
-		if ((**item).Address() > start && (**item).Address() < end)
-		{
-			if((**item).Definitions().Get(reg) == true)
-				return true;
-		}
-	}
+    Instruction_list::iterator item;
+    for (item = instructions.begin(); item != instructions.end(); item++)
+    {
+        if ((**item).Address() > start && (**item).Address() < end)
+        {
+            if ((**item).Definitions().Get(reg) == true)
+                return true;
+        }
+    }
 
-	return false;
+    return false;
 }
 
-bool IsRegisterDefinedBetweenAssignmentAndTarget(Addr target_addr, Expression_ptr target, unsigned short replacement_reg, Expression_ptr replacement_expr, Addr src_addr, Instruction_list instructions)
+bool
+IsRegisterDefinedBetweenAssignmentAndTarget(Addr target_addr, Expression_ptr target, unsigned short replacement_reg,
+                                            Expression_ptr replacement_expr, Addr src_addr,
+                                            Instruction_list instructions)
 {
-		if (replacement_expr->IsType(Expression::REGISTER))
-		{
+    if (replacement_expr->IsType(Expression::REGISTER))
+    {
 
-		unsigned short reg = static_cast<Register*>(replacement_expr.get())->Index();
-		if(reg != replacement_reg)
-		{
-			if(FindRegisterInExpression(reg, target) == true)
-			{
-				if(IsRegisterDefinedBetweenAddresses(reg, src_addr, target_addr, instructions) == true)
-					return true;
-			}
-		}
-		}
-	else
-	{
-		for (int i = 0; i < replacement_expr->SubExpressionCount(); i++)
-		{
-			Expression_ptr s = replacement_expr->SubExpression(i);
-			if(IsRegisterDefinedBetweenAssignmentAndTarget(target_addr, target, replacement_reg, s, src_addr, instructions) == true)
-				return true;
-		}
-	}
+        unsigned short reg = static_cast<Register *>(replacement_expr.get())->Index();
+        if (reg != replacement_reg)
+        {
+            if (FindRegisterInExpression(reg, target) == true)
+            {
+                if (IsRegisterDefinedBetweenAddresses(reg, src_addr, target_addr, instructions) == true)
+                    return true;
+            }
+        }
+    }
+    else
+    {
+        for (int i = 0; i < replacement_expr->SubExpressionCount(); i++)
+        {
+            Expression_ptr s = replacement_expr->SubExpression(i);
+            if (IsRegisterDefinedBetweenAssignmentAndTarget(target_addr, target, replacement_reg, s, src_addr,
+                                                            instructions) == true)
+                return true;
+        }
+    }
 
-	return false;
+    return false;
 }
 
 class GetFunctionParametersFromStackHelper : public ExpressionVisitor/*{{{*/
 {
-	public:
-		GetFunctionParametersFromStackHelper(DataFlowAnalysis* analysis)
-			: mAnalysis(analysis)
-		{}
-	
-		virtual void Visit(CallExpression& expression)
-		{
-			mAnalysis->CollectParameters(&expression);
-		}
+public:
+    GetFunctionParametersFromStackHelper(DataFlowAnalysis *analysis)
+            : mAnalysis(analysis)
+    {}
 
-		virtual void Visit(BinaryExpression&)  {}
-		virtual void Visit(Dummy&)             {}
-		virtual void Visit(GlobalVariable&)            {}
-		virtual void Visit(NumericLiteral&)    {}
-		virtual void Visit(Register&)          {}
-		virtual void Visit(StackVariable&)     {}
-		virtual void Visit(StringLiteral&)     {}
-		virtual void Visit(TernaryExpression&) {}
-		virtual void Visit(UnaryExpression&)   {}
-		
-	private:
-		DataFlowAnalysis* mAnalysis;
+    virtual void Visit(CallExpression &expression)
+    {
+        mAnalysis->CollectParameters(&expression);
+    }
+
+    virtual void Visit(BinaryExpression &)
+    {}
+
+    virtual void Visit(Dummy &)
+    {}
+
+    virtual void Visit(GlobalVariable &)
+    {}
+
+    virtual void Visit(NumericLiteral &)
+    {}
+
+    virtual void Visit(Register &)
+    {}
+
+    virtual void Visit(StackVariable &)
+    {}
+
+    virtual void Visit(StringLiteral &)
+    {}
+
+    virtual void Visit(TernaryExpression &)
+    {}
+
+    virtual void Visit(UnaryExpression &)
+    {}
+
+private:
+    DataFlowAnalysis *mAnalysis;
 }; /*}}}*/
 
-void DataFlowAnalysis::CollectParameters(CallExpression* call)/*{{{*/
+void DataFlowAnalysis::CollectParameters(CallExpression *call)/*{{{*/
 {
-	if (call->IsFinishedAddingParameters())
-		return; // already collected parameters for this call 
-	
-	if (static_cast<IdaPro&>(Frontend::Get()).ParametersOnStack()) {
+    if (call->IsFinishedAddingParameters())
+        return; // already collected parameters for this call
+
+    if (static_cast<IdaPro &>(Frontend::Get()).ParametersOnStack())
+    {
         int parameters_left = call->ParameterCount();
 
         if (CallExpression::UNKNOWN_PARAMETER_COUNT == parameters_left)
         {
             parameters_left = Stack().size();
-            message("%p I guess this function call takes %i parameters.\n", 
+            message("%p I guess this function call takes %i parameters.\n",
                     Instr()->Address(), parameters_left);
             call->ParameterCountFromStack(parameters_left);
         }
 
         while (!Stack().empty() && parameters_left > 0)
         {
-            Push* push = static_cast<Push*>(Stack().top()->get());
-            call->AddParameter( push->Operand() );
+            Push *push = static_cast<Push *>(Stack().top()->get());
+            call->AddParameter(push->Operand());
             Erase(Stack().top());
             Stack().pop();
             parameters_left--;
@@ -261,332 +282,333 @@ void DataFlowAnalysis::CollectParameters(CallExpression* call)/*{{{*/
 
         if (parameters_left != 0)
         {
-            message("%p Unexpected number of parameters left: %i. Wanted %i parameters.\n", 
+            message("%p Unexpected number of parameters left: %i. Wanted %i parameters.\n",
                     Instr()->Address(), parameters_left, call->ParameterCount());
         }
     }
 
 #if 0
-	call->SetDataTypes();
+    call->SetDataTypes();
 #endif
 } /*}}}*/
 
 void DataFlowAnalysis::GetFunctionParametersFromStack()/*{{{*/
 {
-	GetFunctionParametersFromStackHelper helper(this);
-	
-	for (int i = 0; i < Instr()->OperandCount(); i++)
-	{
-		Instr()->Operand(i)->AcceptDepthFirst(helper);
-	}
+    GetFunctionParametersFromStackHelper helper(this);
+
+    for (int i = 0; i < Instr()->OperandCount(); i++)
+    {
+        Instr()->Operand(i)->AcceptDepthFirst(helper);
+    }
 }/*}}}*/
 
 void DataFlowAnalysis::TryConvertPushPopToAssignment()/*{{{*/
 {
-	Instruction_list::iterator pop  = Iterator();
-	Instruction_list::iterator push = Stack().top();
+    Instruction_list::iterator pop = Iterator();
+    Instruction_list::iterator push = Stack().top();
 
-	if (Stack().size() == 0)
-	{
-		message("%p [TryConvertPushPopToAssignment] Empty stack\n", Instr()->Address());
-		return;
-	}
+    if (Stack().size() == 0)
+    {
+        message("%p [TryConvertPushPopToAssignment] Empty stack\n", Instr()->Address());
+        return;
+    }
 
-	if (Instructions().end() == pop)
-	{
-		message("%p [TryConvertPushPopToAssignment] Bad pop\n", Instr()->Address());
-		return;
-	}
+    if (Instructions().end() == pop)
+    {
+        message("%p [TryConvertPushPopToAssignment] Bad pop\n", Instr()->Address());
+        return;
+    }
 
-	Instruction_list list = Instructions();
-	Instruction_list::iterator test = list.end();
+    Instruction_list list = Instructions();
+    Instruction_list::iterator test = list.end();
 
-	Instruction_list list1 = Instructions();
-	Instruction_list::iterator test1 = list.end();
+    Instruction_list list1 = Instructions();
+    Instruction_list::iterator test1 = list.end();
 
-	/*ERIC do we need this test?
-	if (test == push)
-	{
-		message("%p [TryConvertPushPopToAssignment] Bad push\n", Instr()->Address());
-		return;
-	}
-*/	
-	//
-	//  If there are no defintions of popped register between push and pop,
-	//  we can make an assignment at the push
-	//
-	Expression_ptr popped = (**pop).Operand(0);
+    /*ERIC do we need this test?
+    if (test == push)
+    {
+        message("%p [TryConvertPushPopToAssignment] Bad push\n", Instr()->Address());
+        return;
+    }
+*/
+    //
+    //  If there are no defintions of popped register between push and pop,
+    //  we can make an assignment at the push
+    //
+    Expression_ptr popped = (**pop).Operand(0);
 
-	// This should always be a register, but who knows?
-	if (popped->IsType(Expression::REGISTER))
-	{
-		Expression_ptr pushed = (**push).Operand(0);
+    // This should always be a register, but who knows?
+    if (popped->IsType(Expression::REGISTER))
+    {
+        Expression_ptr pushed = (**push).Operand(0);
 
-		unsigned short reg = static_cast<Register*>(pushed.get())->Index();
-		Instruction_list::iterator i = push;
+        unsigned short reg = static_cast<Register *>(pushed.get())->Index();
+        Instruction_list::iterator i = push;
 
-		for (i++; i != pop; i++)
-		{
-			if ( (**i).Definitions().Get(reg))
-				break;
-		}
+        for (i++; i != pop; i++)
+        {
+            if ((**i).Definitions().Get(reg))
+                break;
+        }
 
-		if (i == pop)
-		{
-			message("%p Replacing push/pop with assignment!\n", 
-					(**push).Address());
-			Instructions().insert(
-					push,
-					Instruction_ptr(new Assignment(
-							(**push).Address(),
-							popped,	
-							pushed
-							))
-					);
-			Erase(push);
-			Erase(pop);
-		}
-	}
-    else {
-        msg("WARNING: popped expr is not a register: %d at %a\n", popped->Type(),(**pop).Address());
-		//FIXME need to cleanly handle push/pop segment registers.
-		Erase(push);
-		Erase(pop);
+        if (i == pop)
+        {
+            message("%p Replacing push/pop with assignment!\n",
+                    (**push).Address());
+            Instructions().insert(
+                    push,
+                    Instruction_ptr(new Assignment(
+                            (**push).Address(),
+                            popped,
+                            pushed
+                    ))
+            );
+            Erase(push);
+            Erase(pop);
+        }
+    }
+    else
+    {
+        msg("WARNING: popped expr is not a register: %d at %a\n", popped->Type(), (**pop).Address());
+        //FIXME need to cleanly handle push/pop segment registers.
+        Erase(push);
+        Erase(pop);
     }
 }/*}}}*/
 
 Instruction_list::iterator DataFlowAnalysis::FindInstructionAtAddress(/*{{{*/
-		Instruction_list::iterator item, Addr address)
+        Instruction_list::iterator item, Addr address)
 {
-	for(item++; item != Instructions().end(); item++)
-	{
-		if ((**item).Address() == address)
-			break;
-	}
-	return item;
+    for (item++; item != Instructions().end(); item++)
+    {
+        if ((**item).Address() == address)
+            break;
+    }
+    return item;
 }/*}}}*/
 
 Analysis::AnalysisResult DataFlowAnalysis::ReplaceUseWithDefinition(/*{{{*/
-		Assignment* assignment)
+        Assignment *assignment)
 {
-	RegisterToAddress_map& du_chain = assignment->DuChain();
+    RegisterToAddress_map &du_chain = assignment->DuChain();
 
-	if (du_chain.size() != 1)
-		return CONTINUE;
+    if (du_chain.size() != 1)
+        return CONTINUE;
 
-	if(assignment->Address() == 0x2a511)
-		msg(".");
+    if (assignment->Address() == 0x2a511)
+        msg(".");
 
-	unsigned short reg = du_chain.begin()->first;
-	message("%p du_chain.count(%i) = %i\n", assignment->Address(), reg, du_chain.count(reg));
+    unsigned short reg = du_chain.begin()->first;
+    message("%p du_chain.count(%i) = %i\n", assignment->Address(), reg, du_chain.count(reg));
 
-	// Don't do this for the last defintion if it is in LiveOut
-	if (assignment->IsLastDefinition(reg) && Node()->InLiveOut(reg))
-		return CONTINUE;
+    // Don't do this for the last defintion if it is in LiveOut
+    if (assignment->IsLastDefinition(reg) && Node()->InLiveOut(reg))
+        return CONTINUE;
 
 #if 0
-	pair<RegisterToAddress_map::const_iterator, RegisterToAddress_map::const_iterator> range = 
-		du_chain.equal_range(reg);
+    pair<RegisterToAddress_map::const_iterator, RegisterToAddress_map::const_iterator> range =
+        du_chain.equal_range(reg);
 
-	for (RegisterToAddress_map::const_iterator item = range.first;
-			item != range.second;
-			item++)
-	{
-		message("item->second = %p\n", item->second);
-	}
+    for (RegisterToAddress_map::const_iterator item = range.first;
+            item != range.second;
+            item++)
+    {
+        message("item->second = %p\n", item->second);
+    }
 #endif
 
-	// Find end of DU-chain
-	Instruction_list::iterator target_item = 
-		FindInstructionAtAddress(Iterator(), du_chain.begin()->second);
+    // Find end of DU-chain
+    Instruction_list::iterator target_item =
+            FindInstructionAtAddress(Iterator(), du_chain.begin()->second);
 
-	// Verify we found it
-	if (Instructions().end() == target_item)
-		return CONTINUE;
+    // Verify we found it
+    if (Instructions().end() == target_item)
+        return CONTINUE;
 
-	// XXX: not for calls?
-	if (assignment->IsCall())
-	{
-		// XXX: See if adjacent instructions
-		Instruction_list::iterator tmp = Iterator();
-		tmp++;
-		if (tmp != target_item)
-			return CONTINUE;
-	}
+    // XXX: not for calls?
+    if (assignment->IsCall())
+    {
+        // XXX: See if adjacent instructions
+        Instruction_list::iterator tmp = Iterator();
+        tmp++;
+        if (tmp != target_item)
+            return CONTINUE;
+    }
 
-	Instruction_ptr target = *target_item;
-	bool replace_done = false;
+    Instruction_ptr target = *target_item;
+    bool replace_done = false;
 
 
 
-	// assuming the register is only used once
-	for (int i = 0; i < target->OperandCount(); i++)
-	{
-		if (target->OperandType(i) == Instruction::USE
-			&& IsRegisterDefinedBetweenAssignmentAndTarget(target->Address(), target->Operand(i), reg, assignment->Second(), assignment->Address(), Instructions()) == false)
-		{
-			if (ReplaceRegisterExpression(target, i, reg, assignment->Second()))
-			{
-				replace_done = true;
-				break;
-			}
-		}
-	}
+    // assuming the register is only used once
+    for (int i = 0; i < target->OperandCount(); i++)
+    {
+        if (target->OperandType(i) == Instruction::USE
+            && IsRegisterDefinedBetweenAssignmentAndTarget(target->Address(), target->Operand(i), reg,
+                                                           assignment->Second(), assignment->Address(),
+                                                           Instructions()) == false)
+        {
+            if (ReplaceRegisterExpression(target, i, reg, assignment->Second()))
+            {
+                replace_done = true;
+                break;
+            }
+        }
+    }
 
-	if (replace_done)
-	{
-		message("%p Replaced expression in this instruction\n", target->Address());
-		target->Uses().Clear(reg);
-		target->Uses() |= assignment->Uses();
-		target->LastDefinitions() |= assignment->LastDefinitions();
-		Erase(Iterator());
-	}
+    if (replace_done)
+    {
+        message("%p Replaced expression in this instruction\n", target->Address());
+        target->Uses().Clear(reg);
+        target->Uses() |= assignment->Uses();
+        target->LastDefinitions() |= assignment->LastDefinitions();
+        Erase(Iterator());
+    }
 
-	return CONTINUE;
+    return CONTINUE;
 }/*}}}*/
 
 Analysis::AnalysisResult DataFlowAnalysis::ReplaceUseWithDefinition2(/*{{{*/
-		Assignment* assignment)
+        Assignment *assignment)
 {
-	// Must be a register
-	if (!assignment->First()->IsType(Expression::REGISTER))
-		return CONTINUE;
-	
-	unsigned short reg = Register::Index(assignment->First());
+    // Must be a register
+    if (!assignment->First()->IsType(Expression::REGISTER))
+        return CONTINUE;
 
-	// Must be last definition and be in LiveOut
-	if (!assignment->IsLastDefinition(reg) ||
-			!Node()->InLiveOut(reg))
-		return CONTINUE;
+    unsigned short reg = Register::Index(assignment->First());
 
-	// Must be a primitive type
-	switch (assignment->Second()->Type())
-	{
-		case Expression::GLOBAL:
-		case Expression::NUMERIC_LITERAL:
-		case Expression::STACK_VARIABLE:
-		case Expression::STRING_LITERAL:
-			break;
+    // Must be last definition and be in LiveOut
+    if (!assignment->IsLastDefinition(reg) ||
+        !Node()->InLiveOut(reg))
+        return CONTINUE;
 
-		default:
-			return CONTINUE;
-	}
+    // Must be a primitive type
+    switch (assignment->Second()->Type())
+    {
+        case Expression::GLOBAL:
+        case Expression::NUMERIC_LITERAL:
+        case Expression::STACK_VARIABLE:
+        case Expression::STRING_LITERAL: break;
 
-	message("%p In ReplaceUseWithDefinition2 and past the tests\n", 
-			assignment->Address());
+        default: return CONTINUE;
+    }
 
-	// for each successor
-	for (int i = 0; i < Node()->SuccessorCount(); i++)
-	{
-		Node_ptr successor = Node()->Successor(i);
-		if (!successor->LiveIn().Get(reg))
-			continue;
+    message("%p In ReplaceUseWithDefinition2 and past the tests\n",
+            assignment->Address());
+
+    // for each successor
+    for (int i = 0; i < Node()->SuccessorCount(); i++)
+    {
+        Node_ptr successor = Node()->Successor(i);
+        if (!successor->LiveIn().Get(reg))
+            continue;
 //		message("  sucessor->Address() = %p\n", successor->Address());
-		if (successor->InLiveOut(reg))
-		{
+        if (successor->InLiveOut(reg))
+        {
 //			message("Can't handle substitution on more than the direct successors yet :-(\n");
-			return CONTINUE;
-		}
-	
-		for (Node_list::iterator n = mNodeList.begin();
-				n != mNodeList.end();
-				n++)
-		{
-			Node_ptr node = *n;
+            return CONTINUE;
+        }
 
-			if (Node() != node)
-			{
-				for (int i = 0; i < node->SuccessorCount(); i++)
-				{
-					if (node->Successor(i) == successor)
-					{
+        for (Node_list::iterator n = mNodeList.begin();
+             n != mNodeList.end();
+             n++)
+        {
+            Node_ptr node = *n;
+
+            if (Node() != node)
+            {
+                for (int i = 0; i < node->SuccessorCount(); i++)
+                {
+                    if (node->Successor(i) == successor)
+                    {
 //						message("    predecessor found @ %p\n", node->Address());
-						if (node->InLiveOut(reg))
-						{
+                        if (node->InLiveOut(reg))
+                        {
 //							message("      predecessor had register in LiveOut :-(\n");
-							return CONTINUE;
-						}
-					}
-				}
-			}
-		}
-	}
+                            return CONTINUE;
+                        }
+                    }
+                }
+            }
+        }
+    }
 
-	// for each successor again
-	for (int i = 0; i < Node()->SuccessorCount(); i++)
-	{
-		Node_ptr successor = Node()->Successor(i);
+    // for each successor again
+    for (int i = 0; i < Node()->SuccessorCount(); i++)
+    {
+        Node_ptr successor = Node()->Successor(i);
 
-		if (!successor->LiveIn().Get(reg))
-			continue;
-		
-		// for each instruction in successor
-		for (Instruction_list::iterator target_item = successor->Instructions().begin();
-				target_item != successor->Instructions().end();
-				target_item++)
-		{
-			Instruction_ptr target = *target_item;
+        if (!successor->LiveIn().Get(reg))
+            continue;
+
+        // for each instruction in successor
+        for (Instruction_list::iterator target_item = successor->Instructions().begin();
+             target_item != successor->Instructions().end();
+             target_item++)
+        {
+            Instruction_ptr target = *target_item;
 
 #if 1
-			bool replace_done = false;
+            bool replace_done = false;
 
-			// assuming the register is only used once
-			for (int i = 0; i < target->OperandCount(); i++)
-			{
-				if (target->OperandType(i) == Instruction::USE)
-				{
-					if (ReplaceRegisterExpression(target, i, reg, assignment->Second()))
-					{
-						replace_done = true;
-						break;
-					}
-				}
-			}
+            // assuming the register is only used once
+            for (int i = 0; i < target->OperandCount(); i++)
+            {
+                if (target->OperandType(i) == Instruction::USE)
+                {
+                    if (ReplaceRegisterExpression(target, i, reg, assignment->Second()))
+                    {
+                        replace_done = true;
+                        break;
+                    }
+                }
+            }
 
-			if (replace_done)
-			{
-				message("%p Replaced expression in this instruction\n", target->Address());
+            if (replace_done)
+            {
+                message("%p Replaced expression in this instruction\n", target->Address());
 
-				target->Uses().Clear(reg);
-				target->Uses() |= assignment->Uses();
-				//target->LastDefinitions() |= assignment->LastDefinitions();
-			}
+                target->Uses().Clear(reg);
+                target->Uses() |= assignment->Uses();
+                //target->LastDefinitions() |= assignment->LastDefinitions();
+            }
 
-			// Stop if the register was redefined by this instruction
-			if (target->Definitions().Get(reg))
-				break;
-		}
-			
-		successor->LiveIn().Clear(reg);
-	}
-	
-	Node()->LiveOut().Clear(reg);
+            // Stop if the register was redefined by this instruction
+            if (target->Definitions().Get(reg))
+                break;
+        }
+
+        successor->LiveIn().Clear(reg);
+    }
+
+    Node()->LiveOut().Clear(reg);
 //	Erase(Iterator());
 #endif
 
-	return CONTINUE;			
+    return CONTINUE;
 }/*}}}*/
 
-void DataFlowAnalysis::OnAssignment(Assignment* assignment)/*{{{*/
+void DataFlowAnalysis::OnAssignment(Assignment *assignment)/*{{{*/
 {
 #if 0
-	if (Expression::Equal(assignment->First(), assignment->Second()))
-	{
-		message("%p Assign to self\n", Instr()->Address());
-	}
+    if (Expression::Equal(assignment->First(), assignment->Second()))
+    {
+        message("%p Assign to self\n", Instr()->Address());
+    }
 #endif
 
-	if(assignment->Address() == 0x2272e)
-		msg("get to stack manip op");
+    if (assignment->Address() == 0x2272e)
+        msg("get to stack manip op");
 
-	//ReplaceUseWithDefinition2(assignment);
-	ReplaceUseWithDefinition(assignment);
-	//TryIncDec(assignment);
+    //ReplaceUseWithDefinition2(assignment);
+    ReplaceUseWithDefinition(assignment);
+    //TryIncDec(assignment);
 
-	// Propagate data type
-	//assignment->First()->DataType() = assignment->Second()->DataType();
+    // Propagate data type
+    //assignment->First()->DataType() = assignment->Second()->DataType();
 
-	IdaX86::TryBorlandThrow(this, assignment);
+    IdaX86::TryBorlandThrow(this, assignment);
 }/*}}}*/
 
 

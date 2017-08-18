@@ -39,9 +39,9 @@
  */
 class Function
 {
-	private:
-		// Variable_list mVariables
-		Node_list mNodes;
+private:
+    // Variable_list mVariables
+    Node_list mNodes;
 };
 
 #endif // _FUNCTION_HPP

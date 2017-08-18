@@ -21,17 +21,16 @@
 //
 // $Id: frontend.cpp,v 1.3 2005/07/23 09:20:31 wjhengeveld Exp $
 #include "frontend.hpp"
-#include <memory>
 
 static Frontend_ptr mCurrentFrontend;
 
 void Frontend::Set(Frontend_ptr frontend)
 {
-	mCurrentFrontend = frontend;
+    mCurrentFrontend = frontend;
 }
 
-Frontend& Frontend::Get()
+Frontend &Frontend::Get()
 {
-	return *mCurrentFrontend.get();
+    return *mCurrentFrontend.get();
 }
 

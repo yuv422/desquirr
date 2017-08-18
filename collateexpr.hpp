@@ -26,17 +26,17 @@
 
 #include "desquirr.hpp"
 
-class CollateExpr 
+class CollateExpr
 {
 public:
-	CollateExpr(Node_list& nodes)
-			: mNodeList(nodes)
-		{}
+    CollateExpr(Node_list &nodes)
+            : mNodeList(nodes)
+    {}
 
-	int Run();
+    int Run();
 
 private:
-			Node_list& mNodeList;
+    Node_list &mNodeList;
 
 };
 

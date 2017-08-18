@@ -29,43 +29,59 @@
 #include <string>
 
 class DataFlowAnalysis;
+
 class Assignment;
+
 class CallExpression;
+
 class func_t;
+
 class insn_t;
+
 class op_t;
 
 class IdaPro : public Frontend
 {
-	public:
-		IdaPro()
-		{
-		}
-		
-		virtual int vmsg(const char *format, va_list va);
-		virtual Addr AddressFromName(const char *name, 
-				Addr referer = INVALID_ADDR);
-		
-		virtual void FillList(func_t* function, Instruction_list& instructions) = 0;
-		void DumpInsn(Addr address);
-        virtual bool ParametersOnStack() = 0;
-		virtual void DumpInsn(insn_t& insn) = 0;
-		static void LoadCallTypeInformation(CallExpression* call);
+public:
+    IdaPro()
+    {
+    }
 
-	protected:
-		const char* GetOptypeString(op_t& op);
+    virtual int vmsg(const char *format, va_list va);
+
+    virtual Addr AddressFromName(const char *name,
+                                 Addr referer = INVALID_ADDR);
+
+    virtual void FillList(func_t *function, Instruction_list &instructions) = 0;
+
+    void DumpInsn(Addr address);
+
+    virtual bool ParametersOnStack() = 0;
+
+    virtual void DumpInsn(insn_t &insn) = 0;
+
+    static void LoadCallTypeInformation(CallExpression *call);
+
+protected:
+    const char *GetOptypeString(op_t &op);
 };
 
 extern std::string GetStackVariableName(ea_t ea, int operand, int *pIndex);
+
 extern Expression_ptr CreateStackVariable(insn_t &insn, int operand);
 
 // used in expression.cpp GlobalVariable::CreateFrom
 extern Expression_ptr CreateGlobalVariable(const insn_t &insn, int operand);
+
 extern Expression_ptr CreateVariable(const insn_t &insn, int operand);
+
 // used in ida-*.cpp CreateLabel / MakeLowLevelList
 extern std::string GetLocalCodeLabel(ea_t ea, int *pIndex);
+
 extern Expression_ptr CreateLocalCodeReference(ea_t ea);
+
 extern Instruction_ptr CreateLocalCodeLabel(ea_t ea);
+
 extern Expression_ptr CreateGlobalCodeLabel(ea_t ea);
 
 

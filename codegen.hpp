@@ -27,12 +27,13 @@
 
 enum CodeStyle
 {
-	C_STYLE,
-	LISTING_STYLE
+    C_STYLE,
+    LISTING_STYLE
 };
 
-void GenerateCode(Node_list& nodes, CodeStyle style);
-void GenerateCode(Instruction_list& instructions, CodeStyle style);
+void GenerateCode(Node_list &nodes, CodeStyle style);
+
+void GenerateCode(Instruction_list &instructions, CodeStyle style);
 
 #endif // _CODEGEN_HPP
 

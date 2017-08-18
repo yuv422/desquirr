@@ -28,24 +28,27 @@
 #include <stdarg.h>
 
 class Frontend;
+
 typedef boost::shared_ptr<Frontend> Frontend_ptr;
 
 class Frontend
 {
-	public:
-		virtual std::string RegisterName(RegisterIndex index) const = 0;
-		virtual int vmsg(const char *format, va_list va) = 0;
+public:
+    virtual std::string RegisterName(RegisterIndex index) const = 0;
 
-		virtual Addr AddressFromName(const char *name, 
-				Addr referer = INVALID_ADDR) = 0;
+    virtual int vmsg(const char *format, va_list va) = 0;
+
+    virtual Addr AddressFromName(const char *name,
+                                 Addr referer = INVALID_ADDR) = 0;
 
 #if 0
-		virtual Address GetStartAddress() = 0;
-		virtual Function_ptr CreateFunction(Address address) = 0;
+    virtual Address GetStartAddress() = 0;
+    virtual Function_ptr CreateFunction(Address address) = 0;
 #endif
 
-		static void Set(Frontend_ptr frontend);
-		static Frontend& Get();
+    static void Set(Frontend_ptr frontend);
+
+    static Frontend &Get();
 };
 
 #endif

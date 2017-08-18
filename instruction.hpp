@@ -51,9 +51,9 @@ Instruction   ... ea
 
 class Expression;
 
-typedef std::list<Expression*> ExpressionList;
+typedef std::list<Expression *> ExpressionList;
 
-std::ostream& operator<< (std::ostream& os, const RegisterToAddress_map& vs);
+std::ostream &operator<<(std::ostream &os, const RegisterToAddress_map &vs);
 
 //typedef std::list<op_t> OperandList;
 
@@ -62,132 +62,149 @@ std::ostream& operator<< (std::ostream& os, const RegisterToAddress_map& vs);
  */
 class BoolArray/*{{{*/
 {
-	protected:
-		typedef unsigned long BITFIELD;
+protected:
+    typedef unsigned long BITFIELD;
 
-		BoolArray(BITFIELD bitfield)
-			: mBitfield(bitfield)
-		{}
-		
-	public:
-		enum
-		{
-			SIZE = 22   // XXX: the size is just a nice number
-		};
-		
-		BoolArray()
-		{
-			Clear();
-		}
+    BoolArray(BITFIELD bitfield)
+            : mBitfield(bitfield)
+    {}
 
-		BoolArray(const BoolArray& other)
-			: mBitfield(other.mBitfield)
-		{
-		}
+public:
+    enum
+    {
+        SIZE = 22   // XXX: the size is just a nice number
+    };
+
+    BoolArray()
+    {
+        Clear();
+    }
+
+    BoolArray(const BoolArray &other)
+            : mBitfield(other.mBitfield)
+    {
+    }
 
 
-		BoolArray operator ~ () const
-		{
-			return BoolArray(~mBitfield);
-		}
+    BoolArray operator~() const
+    {
+        return BoolArray(~mBitfield);
+    }
 
-		bool operator != (const BoolArray& other) const
-		{
-			return other.mBitfield != mBitfield;
-		}
+    bool operator!=(const BoolArray &other) const
+    {
+        return other.mBitfield != mBitfield;
+    }
 
-		void operator |= (const BoolArray& other) 
-		{
-			mBitfield |= other.mBitfield;
-		}
+    void operator|=(const BoolArray &other)
+    {
+        mBitfield |= other.mBitfield;
+    }
 
-		BoolArray operator | (const BoolArray& other) const
-		{
-			return BoolArray(mBitfield | other.mBitfield);
-		}
+    BoolArray operator|(const BoolArray &other) const
+    {
+        return BoolArray(mBitfield | other.mBitfield);
+    }
 
-		BoolArray operator & (const BoolArray& other) const
-		{
-			return BoolArray(mBitfield & other.mBitfield);
-		}
+    BoolArray operator&(const BoolArray &other) const
+    {
+        return BoolArray(mBitfield & other.mBitfield);
+    }
 
-		bool Get(int i) const
-		{ 
-			if (i >= 0 && i < SIZE) 
-				return 0 != (mBitfield & POWER_OF_2[i]);
-			else
-				return false;
-		}				
+    bool Get(int i) const
+    {
+        if (i >= 0 && i < SIZE)
+            return 0 != (mBitfield & POWER_OF_2[i]);
+        else
+            return false;
+    }
 
-		void Set(int i) 
-		{ 
-			if (i >= 0 && i < SIZE)
-				mBitfield |= POWER_OF_2[i];
-		}
+    void Set(int i)
+    {
+        if (i >= 0 && i < SIZE)
+            mBitfield |= POWER_OF_2[i];
+    }
 
-		void Clear(int i) 
-		{ 
-			mBitfield &= ~POWER_OF_2[i]; 
-		}
+    void Clear(int i)
+    {
+        mBitfield &= ~POWER_OF_2[i];
+    }
 
-		void Clear()
-		{
-			mBitfield = 0;
-		}
-			
-		void Or(BoolArray& other)
-		{
-			mBitfield |= other.mBitfield;
-		}
+    void Clear()
+    {
+        mBitfield = 0;
+    }
 
-		int CountSet() const
-		{
-			int count = 0;
-			for (int i = 0; i < SIZE; i++)
-				if (mBitfield & POWER_OF_2[i])
-					count++;
-			return count;
-		}
-        friend std::ostream& operator<< (std::ostream& os, const BoolArray& ba)
-		{
-			bool first = true;
-			os << '{';
-			for (int i = 0; i < SIZE; i++)
-			{
-				if (ba.Get(i))
-				{
-					if (first)
-						first = false;
-					else
-						os << ", ";
+    void Or(BoolArray &other)
+    {
+        mBitfield |= other.mBitfield;
+    }
 
-					os << Register::Name(i);
-				}
-			}
-			os << '}';
-            return os;
-		}
-	private:
-		BITFIELD mBitfield;
+    int CountSet() const
+    {
+        int count = 0;
+        for (int i = 0; i < SIZE; i++)
+            if (mBitfield & POWER_OF_2[i])
+                count++;
+        return count;
+    }
 
-		static const int POWER_OF_2[SIZE];
+    friend std::ostream &operator<<(std::ostream &os, const BoolArray &ba)
+    {
+        bool first = true;
+        os << '{';
+        for (int i = 0; i < SIZE; i++)
+        {
+            if (ba.Get(i))
+            {
+                if (first)
+                    first = false;
+                else
+                    os << ", ";
+
+                os << Register::Name(i);
+            }
+        }
+        os << '}';
+        return os;
+    }
+
+private:
+    BITFIELD mBitfield;
+
+    static const int POWER_OF_2[SIZE];
 };/*}}}*/
 
 class Assignment;
+
 class Case;
+
 class ConditionalJump;
+
 class Jump;
+
 class Label;
+
 class LowLevel;
+
 class Push;
+
 class Pop;
+
 class Return;
+
 class Switch;
+
 class DoWhile;
+
 class While;
+
 class If;
+
 class Break;
+
 class Continue;
+
 class Throw;
 
 /**
@@ -195,33 +212,53 @@ class Throw;
  */
 class InstructionVisitor
 {
-	public:
-        virtual ~InstructionVisitor() {}
+public:
+    virtual ~InstructionVisitor()
+    {}
 
-		virtual void Visit(Assignment&)      = 0;
-		virtual void Visit(Case&)            = 0;
-		virtual void Visit(ConditionalJump&) = 0;
-		virtual void Visit(Jump&)            = 0;
-		virtual void Visit(Label&)           = 0;
-		virtual void Visit(LowLevel&)        = 0;
-		virtual void Visit(Push&)            = 0;
-		virtual void Visit(Pop&)             = 0;
-		virtual void Visit(Return&)          = 0;
-		virtual void Visit(Switch&)          = 0;
-		virtual void Visit(DoWhile&)         = 0;
-		virtual void Visit(While&)           = 0;
-		virtual void Visit(If&)              = 0;
-		virtual void Visit(Break&)           = 0;
-		virtual void Visit(Continue&)        = 0;
-		virtual void Visit(Throw&)           = 0;
+    virtual void Visit(Assignment &)      = 0;
 
-		// Helper functions when accepting node lists
-		virtual void NodeBegin(Node_ptr) {}
-		virtual void NodeEnd() {}
+    virtual void Visit(Case &)            = 0;
+
+    virtual void Visit(ConditionalJump &) = 0;
+
+    virtual void Visit(Jump &)            = 0;
+
+    virtual void Visit(Label &)           = 0;
+
+    virtual void Visit(LowLevel &)        = 0;
+
+    virtual void Visit(Push &)            = 0;
+
+    virtual void Visit(Pop &)             = 0;
+
+    virtual void Visit(Return &)          = 0;
+
+    virtual void Visit(Switch &)          = 0;
+
+    virtual void Visit(DoWhile &)         = 0;
+
+    virtual void Visit(While &)           = 0;
+
+    virtual void Visit(If &)              = 0;
+
+    virtual void Visit(Break &)           = 0;
+
+    virtual void Visit(Continue &)        = 0;
+
+    virtual void Visit(Throw &)           = 0;
+
+    // Helper functions when accepting node lists
+    virtual void NodeBegin(Node_ptr)
+    {}
+
+    virtual void NodeEnd()
+    {}
 };
 
-void Accept(Node_list& nodes, InstructionVisitor& visitor);
-void Accept(Instruction_list& instructions, InstructionVisitor& visitor);
+void Accept(Node_list &nodes, InstructionVisitor &visitor);
+
+void Accept(Instruction_list &instructions, InstructionVisitor &visitor);
 
 
 /**
@@ -229,164 +266,180 @@ void Accept(Instruction_list& instructions, InstructionVisitor& visitor);
  */
 class Instruction/*{{{*/
 {
-	public:
-		enum InstructionType
-		{
-			ASSIGNMENT,
-			CALL,
-			CASE,
-			CONDITIONAL_JUMP,
-			JUMP,
-			LABEL,
-			LOW_LEVEL,
-			PUSH,
-			POP,
-			RETURN,
-			SWITCH,
-			THROW,
-			DO_WHILE,
-			WHILE,
-			IF,
-			FOR,
-			BREAK,
-			CONTINUE,
-			TO_BE_DELETED
-		};
+public:
+    enum InstructionType
+    {
+        ASSIGNMENT,
+        CALL,
+        CASE,
+        CONDITIONAL_JUMP,
+        JUMP,
+        LABEL,
+        LOW_LEVEL,
+        PUSH,
+        POP,
+        RETURN,
+        SWITCH,
+        THROW,
+        DO_WHILE,
+        WHILE,
+        IF,
+        FOR,
+        BREAK,
+        CONTINUE,
+        TO_BE_DELETED
+    };
 
-		enum OperandTypeValue
-		{
-			INVALID,
-			DEFINITION,
-			USE,
-			USE_AND_DEFINITION
-		};
-		
-		virtual ~Instruction()
-		{}
+    enum OperandTypeValue
+    {
+        INVALID,
+        DEFINITION,
+        USE,
+        USE_AND_DEFINITION
+    };
 
-		virtual Instruction_ptr Copy()
-		{
-			return Instruction_ptr();
-		}
+    virtual ~Instruction()
+    {}
+
+    virtual Instruction_ptr Copy()
+    {
+        return Instruction_ptr();
+    }
+
 #if 1
-		virtual int OperandCount()
-		{ 
-			// Default implementation
-			return 0; 
-		}
-		
-		virtual Expression_ptr Operand(int index)
-		{
-			// Default implementation
-			Expression_ptr result;
-			msg("ERROR: default implementation for Instruction::Operand called\n");
-			return result;
-		}
 
-		virtual void Operand(int index, Expression_ptr e)
-		{
-			// Default implementation
-		}
+    virtual int OperandCount()
+    {
+        // Default implementation
+        return 0;
+    }
 
-		virtual OperandTypeValue OperandType(int index)
-		{
-			return INVALID;
-		}
+    virtual Expression_ptr Operand(int index)
+    {
+        // Default implementation
+        Expression_ptr result;
+        msg("ERROR: default implementation for Instruction::Operand called\n");
+        return result;
+    }
+
+    virtual void Operand(int index, Expression_ptr e)
+    {
+        // Default implementation
+    }
+
+    virtual OperandTypeValue OperandType(int index)
+    {
+        return INVALID;
+    }
+
 #endif
-	
-		virtual Addr Address() const { return mAddress; }
-		virtual InstructionType Type() const { return mType; }
-		
-		virtual bool IsType(InstructionType type)
-		{
-			return Type() == type;
-		}
 
-		virtual void Accept(InstructionVisitor& visitor) = 0;
+    virtual Addr Address() const
+    { return mAddress; }
 
-		/**
-		 * Return true if the whole instruction can be removed
-		 */
-		virtual bool RemoveDefinition(unsigned short reg)
-		{
-			// Do nothing by default
-			return false;
-		}
-		
-		BoolArray& Definitions()      { return mDefinitions; }
-		BoolArray& Uses()             { return mUses; }
-		BoolArray& LastDefinitions()  { return mLastDefinitions; }
-		BoolArray& FlagDefinitions()  { return mFlagDefinitions; }
+    virtual InstructionType Type() const
+    { return mType; }
 
-		RegisterToAddress_map& DuChain() { return mDuChain; }
+    virtual bool IsType(InstructionType type)
+    {
+        return Type() == type;
+    }
 
-		void AddToDuChain(unsigned short reg, Addr address)
-		{
-			mDuChain.insert(
-					RegisterToAddress_pair(reg, address)
-					);
-		}
+    virtual void Accept(InstructionVisitor &visitor) = 0;
 
-		bool DefinitionHasNoUses(unsigned short reg)
-		{
-			return mDuChain.count(reg) == 0;
-		}
+    /**
+     * Return true if the whole instruction can be removed
+     */
+    virtual bool RemoveDefinition(unsigned short reg)
+    {
+        // Do nothing by default
+        return false;
+    }
 
-		void SetLastDefinition(unsigned short reg)
-		{
-			mLastDefinitions.Set(reg);
-		}
-		
-		bool IsLastDefinition(unsigned short reg)
-		{
-			return mLastDefinitions.Get(reg);
-		}
+    BoolArray &Definitions()
+    { return mDefinitions; }
 
-		bool MarkForDeletion()/*{{{*/
-		{
-			if (TO_BE_DELETED == mType)
-			{
-				return false;
-			}
-			else
-			{			
-				mType = TO_BE_DELETED;
-				return true;
-			}
-		}/*}}}*/
+    BoolArray &Uses()
+    { return mUses; }
 
-		static void FindDefintionUseChains(Instruction_list& instructions);
-        static void DumpInstructionList(Instruction_list& insns);
+    BoolArray &LastDefinitions()
+    { return mLastDefinitions; }
 
-        friend std::ostream& operator<< (std::ostream& os, Instruction& insn)
+    BoolArray &FlagDefinitions()
+    { return mFlagDefinitions; }
+
+    RegisterToAddress_map &DuChain()
+    { return mDuChain; }
+
+    void AddToDuChain(unsigned short reg, Addr address)
+    {
+        mDuChain.insert(
+                RegisterToAddress_pair(reg, address)
+        );
+    }
+
+    bool DefinitionHasNoUses(unsigned short reg)
+    {
+        return mDuChain.count(reg) == 0;
+    }
+
+    void SetLastDefinition(unsigned short reg)
+    {
+        mLastDefinitions.Set(reg);
+    }
+
+    bool IsLastDefinition(unsigned short reg)
+    {
+        return mLastDefinitions.Get(reg);
+    }
+
+    bool MarkForDeletion()/*{{{*/
+    {
+        if (TO_BE_DELETED == mType)
         {
-            insn.print(os);
-            return os;
+            return false;
         }
-
-        virtual void print(std::ostream& os)
+        else
         {
-            os << boost::format("   insn %08lx")
-                    % Address();
-            os << " use=" << Uses();
-            os << " def=" << Definitions();
-            os << " last=" << LastDefinitions();
-            os << " flag=" << FlagDefinitions();
-            os << " chain=" << DuChain();
+            mType = TO_BE_DELETED;
+            return true;
         }
-	protected:
-		Instruction(InstructionType type, Addr ea)
-			: mType(type), mAddress(ea)
-		{}
-		
-	private:
-		InstructionType mType;
-		Addr mAddress;
-		BoolArray mDefinitions;
-		BoolArray mUses;
-		BoolArray mLastDefinitions;
-		BoolArray mFlagDefinitions;
-		RegisterToAddress_map mDuChain;
+    }/*}}}*/
+
+    static void FindDefintionUseChains(Instruction_list &instructions);
+
+    static void DumpInstructionList(Instruction_list &insns);
+
+    friend std::ostream &operator<<(std::ostream &os, Instruction &insn)
+    {
+        insn.print(os);
+        return os;
+    }
+
+    virtual void print(std::ostream &os)
+    {
+        os << boost::format("   insn %08lx")
+              % Address();
+        os << " use=" << Uses();
+        os << " def=" << Definitions();
+        os << " last=" << LastDefinitions();
+        os << " flag=" << FlagDefinitions();
+        os << " chain=" << DuChain();
+    }
+
+protected:
+    Instruction(InstructionType type, Addr ea)
+            : mType(type), mAddress(ea)
+    {}
+
+private:
+    InstructionType mType;
+    Addr mAddress;
+    BoolArray mDefinitions;
+    BoolArray mUses;
+    BoolArray mLastDefinitions;
+    BoolArray mFlagDefinitions;
+    RegisterToAddress_map mDuChain;
 };/*}}}*/
 
 /*
@@ -395,31 +448,33 @@ class Instruction/*{{{*/
 
 class Label : public Instruction/*{{{*/
 {
-	public:
-		Label(Addr ea, const char* name)
-			: Instruction(LABEL, ea), mName(name)
-		{}
+public:
+    Label(Addr ea, const char *name)
+            : Instruction(LABEL, ea), mName(name)
+    {}
 
-		virtual Instruction_ptr Copy()
-		{
-			return Instruction_ptr(new Label(Address(), Name().c_str()));
-		}
+    virtual Instruction_ptr Copy()
+    {
+        return Instruction_ptr(new Label(Address(), Name().c_str()));
+    }
 
-        virtual void print(std::ostream& os)
-        {
-            Instruction::print(os);
-            os << boost::format("LABEL %s\n")
-                    % Name();
-        }
+    virtual void print(std::ostream &os)
+    {
+        Instruction::print(os);
+        os << boost::format("LABEL %s\n")
+              % Name();
+    }
 
-		const std::string& Name() const { return mName; }
+    const std::string &Name() const
+    { return mName; }
 
-		virtual void Accept(InstructionVisitor& visitor)
-		{
-			visitor.Visit(*this);
-		}
-	private:
-		std::string mName;
+    virtual void Accept(InstructionVisitor &visitor)
+    {
+        visitor.Visit(*this);
+    }
+
+private:
+    std::string mName;
 };/*}}}*/
 
 /**
@@ -427,44 +482,48 @@ class Label : public Instruction/*{{{*/
  */
 class UnaryInstruction : public Instruction/*{{{*/
 {
-	public:
-		void Operand(Expression_ptr operand) { mOperand = operand; }
-		Expression_ptr Operand() { return mOperand; }
+public:
+    void Operand(Expression_ptr operand)
+    { mOperand = operand; }
 
+    Expression_ptr Operand()
+    { return mOperand; }
 
 
 #if 1
-		virtual int OperandCount()
-		{ 
-			return 1; 
-		}
-		
-		virtual Expression_ptr Operand(int index)
-		{
-			Expression_ptr result;
-			if (0 == index)
-				result = mOperand;
-			else
-				msg("ERROR: UnaryInstruction::Operand(%d) -> NULL\n", index);
-			return result;
-		}
 
-		virtual void Operand(int index, Expression_ptr e)
-		{
-			if (0 == index)
-				mOperand = e;
-			else
-				msg("ERROR: UnaryInstruction(%d, %08lx)\n", index, e.get());
-		}
+    virtual int OperandCount()
+    {
+        return 1;
+    }
+
+    virtual Expression_ptr Operand(int index)
+    {
+        Expression_ptr result;
+        if (0 == index)
+            result = mOperand;
+        else
+            msg("ERROR: UnaryInstruction::Operand(%d) -> NULL\n", index);
+        return result;
+    }
+
+    virtual void Operand(int index, Expression_ptr e)
+    {
+        if (0 == index)
+            mOperand = e;
+        else
+            msg("ERROR: UnaryInstruction(%d, %08lx)\n", index, e.get());
+    }
+
 #endif
-	
-	protected:
-		UnaryInstruction(InstructionType type, Addr ea, Expression_ptr operand)
-			: Instruction(type, ea), mOperand(operand)
-		{}
 
-	private:
-		Expression_ptr mOperand;
+protected:
+    UnaryInstruction(InstructionType type, Addr ea, Expression_ptr operand)
+            : Instruction(type, ea), mOperand(operand)
+    {}
+
+private:
+    Expression_ptr mOperand;
 };/*}}}*/
 
 /**
@@ -472,51 +531,59 @@ class UnaryInstruction : public Instruction/*{{{*/
  */
 class BinaryInstruction : public Instruction/*{{{*/
 {
-	public:
-		void First(Expression_ptr first) { mFirst = first; }
-		Expression_ptr First() { return mFirst; }
+public:
+    void First(Expression_ptr first)
+    { mFirst = first; }
 
-		void Second(Expression_ptr second) { mSecond = second; }
-		Expression_ptr Second() { return mSecond; }
+    Expression_ptr First()
+    { return mFirst; }
+
+    void Second(Expression_ptr second)
+    { mSecond = second; }
+
+    Expression_ptr Second()
+    { return mSecond; }
 
 #if 1
-		virtual int OperandCount()
-		{ 
-			return 2; 
-		}
-		
-		virtual Expression_ptr Operand(int index)
-		{
-			Expression_ptr result;
-			if (0 == index)
-				result = mFirst;
-			else if (1 == index)
-				result = mSecond;
-			else
-				msg("ERROR: BinaryInstruction::Operand(%d) -> NULL\n", index);
-			return result;
-		}
 
-		virtual void Operand(int index, Expression_ptr e)
-		{
-			if (0 == index)
-				mFirst = e;
-			else if (1 == index)
-				mSecond = e;
-			else
-				msg("ERROR: BinaryInstruction(%d, %08lx)\n", index, e.get());
-		}
+    virtual int OperandCount()
+    {
+        return 2;
+    }
+
+    virtual Expression_ptr Operand(int index)
+    {
+        Expression_ptr result;
+        if (0 == index)
+            result = mFirst;
+        else if (1 == index)
+            result = mSecond;
+        else
+            msg("ERROR: BinaryInstruction::Operand(%d) -> NULL\n", index);
+        return result;
+    }
+
+    virtual void Operand(int index, Expression_ptr e)
+    {
+        if (0 == index)
+            mFirst = e;
+        else if (1 == index)
+            mSecond = e;
+        else
+            msg("ERROR: BinaryInstruction(%d, %08lx)\n", index, e.get());
+    }
+
 #endif
-	
-	protected:
-		BinaryInstruction(InstructionType type, Addr ea, 
-				Expression_ptr first, Expression_ptr second)
-			: Instruction(type, ea), mFirst(first), mSecond(second)
-		{}
 
-	private:
-		Expression_ptr mFirst;
-		Expression_ptr mSecond;
+protected:
+    BinaryInstruction(InstructionType type, Addr ea,
+                      Expression_ptr first, Expression_ptr second)
+            : Instruction(type, ea), mFirst(first), mSecond(second)
+    {}
+
+private:
+    Expression_ptr mFirst;
+    Expression_ptr mSecond;
 };/*}}}*/
 
 /*
@@ -525,147 +592,147 @@ class BinaryInstruction : public Instruction/*{{{*/
 
 class Push : public UnaryInstruction/*{{{*/
 {
-	public:
-		Push(Addr ea, Expression_ptr operand)
-			: UnaryInstruction(PUSH, ea, operand)
-		{}
+public:
+    Push(Addr ea, Expression_ptr operand)
+            : UnaryInstruction(PUSH, ea, operand)
+    {}
 
-		virtual Instruction_ptr Copy()
-		{
-			return Instruction_ptr(new Push(Address(), Operand(0)->Copy()));
-		}
+    virtual Instruction_ptr Copy()
+    {
+        return Instruction_ptr(new Push(Address(), Operand(0)->Copy()));
+    }
 
-        virtual void print(std::ostream& os)
-        {
-            Instruction::print(os);
-            os << "PUSH " << *Operand(0) << "\n";
-        }
+    virtual void print(std::ostream &os)
+    {
+        Instruction::print(os);
+        os << "PUSH " << *Operand(0) << "\n";
+    }
 
-		virtual void Accept(InstructionVisitor& visitor)
-		{
-			visitor.Visit(*this);
-		}
+    virtual void Accept(InstructionVisitor &visitor)
+    {
+        visitor.Visit(*this);
+    }
 
-		virtual OperandTypeValue OperandType(int index)
-		{
-			return USE;
-		}
+    virtual OperandTypeValue OperandType(int index)
+    {
+        return USE;
+    }
 };/*}}}*/
 
 class Pop : public UnaryInstruction/*{{{*/
 {
-	public:
-		Pop(Addr ea, Expression_ptr operand)
-			: UnaryInstruction(POP, ea, operand)
-		{}
-		
-		virtual Instruction_ptr Copy()
-		{
-			return Instruction_ptr(new Pop(Address(), Operand(0)->Copy()));
-		}
+public:
+    Pop(Addr ea, Expression_ptr operand)
+            : UnaryInstruction(POP, ea, operand)
+    {}
 
-        virtual void print(std::ostream& os)
+    virtual Instruction_ptr Copy()
+    {
+        return Instruction_ptr(new Pop(Address(), Operand(0)->Copy()));
+    }
+
+    virtual void print(std::ostream &os)
+    {
+        Instruction::print(os);
+        os << "POP " << *Operand(0) << "\n";
+    }
+
+    virtual void Accept(InstructionVisitor &visitor)
+    {
+        visitor.Visit(*this);
+    }
+
+    virtual OperandTypeValue OperandType(int index)
+    {
+        return DEFINITION;
+    }
+
+    virtual bool RemoveDefinition(unsigned short reg)
+    {
+        if (!Operand().get())
         {
-            Instruction::print(os);
-            os << "POP " << *Operand(0) << "\n";
+            message("%p Error: no operand!\n", Address());
+            return false;
         }
 
-		virtual void Accept(InstructionVisitor& visitor)
-		{
-			visitor.Visit(*this);
-		}
-		
-		virtual OperandTypeValue OperandType(int index)
-		{
-			return DEFINITION;
-		}
-		
-		virtual bool RemoveDefinition(unsigned short reg)
-		{
-			if (!Operand().get())
-			{
-				message("%p Error: no operand!\n", Address());
-				return false;
-			}
-			
-			if (!Operand()->IsType(Expression::REGISTER))
-			{
-				message("Error: trying to remove non-register defintion in POP\n");
-				return false;
-			}
+        if (!Operand()->IsType(Expression::REGISTER))
+        {
+            message("Error: trying to remove non-register defintion in POP\n");
+            return false;
+        }
 
-			Register* expression = static_cast<Register*>(Operand().get());
-			
-			if (reg != expression->Index())
-			{
-				message("Error: trying to remove a non-existing defintion in POP\n");
-				return false;
-			}
+        Register *expression = static_cast<Register *>(Operand().get());
 
-			Operand( Dummy::Create() );
+        if (reg != expression->Index())
+        {
+            message("Error: trying to remove a non-existing defintion in POP\n");
+            return false;
+        }
 
-			Definitions().Clear(reg);
+        Operand(Dummy::Create());
 
-			return false;
-		}
+        Definitions().Clear(reg);
+
+        return false;
+    }
 };/*}}}*/
 
 class Jump : public UnaryInstruction/*{{{*/
 {
-	public:
-		Jump(Addr ea, Expression_ptr destination)
-			: UnaryInstruction(JUMP, ea, destination)
-		{}
-		
-		virtual Instruction_ptr Copy()
-		{
-			return Instruction_ptr(new Jump(Address(), Operand(0)->Copy()));
-		}
+public:
+    Jump(Addr ea, Expression_ptr destination)
+            : UnaryInstruction(JUMP, ea, destination)
+    {}
 
-        virtual void print(std::ostream& os)
-        {
-            Instruction::print(os);
-            os << "JUMP " << *Operand(0) << "\n";
-        }
+    virtual Instruction_ptr Copy()
+    {
+        return Instruction_ptr(new Jump(Address(), Operand(0)->Copy()));
+    }
 
-		virtual void Accept(InstructionVisitor& visitor)
-		{
-			visitor.Visit(*this);
-		}
+    virtual void print(std::ostream &os)
+    {
+        Instruction::print(os);
+        os << "JUMP " << *Operand(0) << "\n";
+    }
 
-		virtual OperandTypeValue OperandType(int index)
-		{
-			return USE;
-		}
+    virtual void Accept(InstructionVisitor &visitor)
+    {
+        visitor.Visit(*this);
+    }
+
+    virtual OperandTypeValue OperandType(int index)
+    {
+        return USE;
+    }
 };/*}}}*/
 
 class Return : public UnaryInstruction/*{{{*/
 {
-	public:
-		Return(Addr ea, Expression_ptr value)
-			: UnaryInstruction(RETURN, ea, value)
-		{}
+public:
+    Return(Addr ea, Expression_ptr value)
+            : UnaryInstruction(RETURN, ea, value)
+    {}
 
-		virtual Instruction_ptr Copy()
-		{
-			return Instruction_ptr(new Return(Address(), Operand(0)->Copy()));
-		}
+    virtual Instruction_ptr Copy()
+    {
+        return Instruction_ptr(new Return(Address(), Operand(0)->Copy()));
+    }
 
-        virtual void print(std::ostream& os)
-        {
-            Instruction::print(os);
-            os << "RETURN " << *Operand(0) << "\n";
-        }
+    virtual void print(std::ostream &os)
+    {
+        Instruction::print(os);
+        os << "RETURN " << *Operand(0) << "\n";
+    }
 
-		virtual void Accept(InstructionVisitor& visitor)
-		{
-			visitor.Visit(*this);
-		}
+    virtual void Accept(InstructionVisitor &visitor)
+    {
+        visitor.Visit(*this);
+    }
 
-		virtual OperandTypeValue OperandType(int index)
-		{
-			return USE;
-		}
+    virtual OperandTypeValue OperandType(int index)
+    {
+        return USE;
+    }
 
 };/*}}}*/
 
@@ -675,106 +742,107 @@ class Return : public UnaryInstruction/*{{{*/
 
 class ConditionalJump : public BinaryInstruction/*{{{*/
 {
-	public:
-		ConditionalJump(Addr ea, 
-				Expression_ptr condition, Expression_ptr destination)
-			: BinaryInstruction(CONDITIONAL_JUMP, ea, condition, destination)
-		{}
+public:
+    ConditionalJump(Addr ea,
+                    Expression_ptr condition, Expression_ptr destination)
+            : BinaryInstruction(CONDITIONAL_JUMP, ea, condition, destination)
+    {}
 
-		virtual Instruction_ptr Copy()
-		{
-			return Instruction_ptr(new ConditionalJump(Address(), Operand(0)->Copy(), Operand(1)->Copy()));
-		}
+    virtual Instruction_ptr Copy()
+    {
+        return Instruction_ptr(new ConditionalJump(Address(), Operand(0)->Copy(), Operand(1)->Copy()));
+    }
 
-        virtual void print(std::ostream& os)
-        {
-            Instruction::print(os);
-            os << "CONDITIONAL (" << *Operand(0) << ")  goto " << *Operand(1) << "\n";
-        }
+    virtual void print(std::ostream &os)
+    {
+        Instruction::print(os);
+        os << "CONDITIONAL (" << *Operand(0) << ")  goto " << *Operand(1) << "\n";
+    }
 
-		virtual void Accept(InstructionVisitor& visitor)
-		{
-			visitor.Visit(*this);
-		}
+    virtual void Accept(InstructionVisitor &visitor)
+    {
+        visitor.Visit(*this);
+    }
 
-		virtual OperandTypeValue OperandType(int index)
-		{
-			return USE;
-		}
+    virtual OperandTypeValue OperandType(int index)
+    {
+        return USE;
+    }
 
 };/*}}}*/
 
 class Assignment : public BinaryInstruction/*{{{*/
 {
-	public:
-		Assignment(Addr ea, Expression_ptr destination, Expression_ptr source)
-			: BinaryInstruction(ASSIGNMENT, ea, destination, source)
-		{}
+public:
+    Assignment(Addr ea, Expression_ptr destination, Expression_ptr source)
+            : BinaryInstruction(ASSIGNMENT, ea, destination, source)
+    {}
 
-		virtual Instruction_ptr Copy()
-		{
-			return Instruction_ptr(new Assignment(Address(), Operand(0)->Copy(), Operand(1)->Copy()));
-		}
+    virtual Instruction_ptr Copy()
+    {
+        return Instruction_ptr(new Assignment(Address(), Operand(0)->Copy(), Operand(1)->Copy()));
+    }
 
-        virtual void print(std::ostream& os)
+    virtual void print(std::ostream &os)
+    {
+        Instruction::print(os);
+        os << "ASSIGN " << *Operand(0) << " := " << *Operand(1) << "\n";
+    }
+
+    bool IsCall()
+    {
+        // TODO: make proper implementation
+        return Second()->IsType(Expression::CALL);
+    }
+
+    virtual void Accept(InstructionVisitor &visitor)
+    {
+        visitor.Visit(*this);
+    }
+
+    virtual OperandTypeValue OperandType(int index)
+    {
+        if (0 == index)
         {
-            Instruction::print(os);
-            os << "ASSIGN " << *Operand(0) << " := " << *Operand(1) << "\n";
+            if (Operand(0)->IsType(Expression::UNARY_EXPRESSION))
+            {
+                // TODO: verify that the Operand is UnaryExpression("*", Register())
+                // This is an indirect store, so we use the operand, not define it!
+                return USE;
+            }
+
+            return DEFINITION;
+        }
+        else
+            return USE;
+    }
+
+    virtual bool RemoveDefinition(unsigned short reg)
+    {
+        if (!First()->IsType(Expression::REGISTER))
+        {
+            message("%p Error: trying to remove non-register defintion in assignment\n",
+                    Address());
+            return false;
         }
 
-		bool IsCall()
-		{
-			// TODO: make proper implementation
-			return Second()->IsType(Expression::CALL);
-		}
+        Register *expression = static_cast<Register *>(First().get());
 
-		virtual void Accept(InstructionVisitor& visitor)
-		{
-			visitor.Visit(*this);
-		}
+        if (reg != expression->Index())
+        {
+            message("%p Error: trying to remove a non-existing defintion: %d/%d\n", Address(), reg,
+                    expression->Index());
+            return false;
+        }
 
-		virtual OperandTypeValue OperandType(int index)
-		{
-			if (0 == index)
-			{
-				if (Operand(0)->IsType(Expression::UNARY_EXPRESSION))
-				{
-					// TODO: verify that the Operand is UnaryExpression("*", Register())
-					// This is an indirect store, so we use the operand, not define it!
-					return USE;
-				}
-				
-				return DEFINITION;
-			}
-			else
-				return USE;
-		}
+        // Replace defintion with dummy instruction
+        First(Dummy::Create());
+        Definitions().Clear(reg);
 
-		virtual bool RemoveDefinition(unsigned short reg)
-		{
-			if (!First()->IsType(Expression::REGISTER))
-			{
-				message("%p Error: trying to remove non-register defintion in assignment\n",
-						Address());
-				return false;
-			}
-
-			Register* expression = static_cast<Register*>(First().get());
-			
-			if (reg != expression->Index())
-			{
-				message("%p Error: trying to remove a non-existing defintion: %d/%d\n",Address(),reg,expression->Index());
-				return false;
-			}
-
-			// Replace defintion with dummy instruction
-			First( Dummy::Create() );
-			Definitions().Clear(reg);
-
-			// TODO: if the second operand does not contain a CALL expression we can 
-			// return true here
-			return !IsCall();
-		}
+        // TODO: if the second operand does not contain a CALL expression we can
+        // return true here
+        return !IsCall();
+    }
 };/*}}}*/
 
 
@@ -784,250 +852,251 @@ class Assignment : public BinaryInstruction/*{{{*/
 
 class Switch : public UnaryInstruction/*{{{*/
 {
-	public:
-		Switch(Addr ea, Expression_ptr value/*, switch_info_t& si*/)
-			: UnaryInstruction(SWITCH, ea, value)//, mSwitchInfo(si)
-		{}
+public:
+    Switch(Addr ea, Expression_ptr value/*, switch_info_t& si*/)
+            : UnaryInstruction(SWITCH, ea, value)//, mSwitchInfo(si)
+    {}
 
-		virtual Instruction_ptr Copy()
-		{
-			return Instruction_ptr(new Switch(Address(), Operand(0)->Copy()));
-		}
+    virtual Instruction_ptr Copy()
+    {
+        return Instruction_ptr(new Switch(Address(), Operand(0)->Copy()));
+    }
 
-        virtual void print(std::ostream& os)
-        {
-            Instruction::print(os);
-            os << "SWITCH " << *Operand(0) << "\n";
-        }
+    virtual void print(std::ostream &os)
+    {
+        Instruction::print(os);
+        os << "SWITCH " << *Operand(0) << "\n";
+    }
 
-		virtual void Accept(InstructionVisitor& visitor)
-		{
-			visitor.Visit(*this);
-		}
+    virtual void Accept(InstructionVisitor &visitor)
+    {
+        visitor.Visit(*this);
+    }
 
-		virtual OperandTypeValue OperandType(int index)
-		{
-			return USE;
-		}
+    virtual OperandTypeValue OperandType(int index)
+    {
+        return USE;
+    }
 
-	private:
-		//switch_info_t mSwitchInfo;	
+private:
+    //switch_info_t mSwitchInfo;
 };/*}}}*/
 
 
 class Case : public Instruction/*{{{*/
 {
-	public:
-		Case(Addr ea, unsigned int value)
-			: Instruction(CASE, ea), mValue(value)
-		{}
+public:
+    Case(Addr ea, unsigned int value)
+            : Instruction(CASE, ea), mValue(value)
+    {}
 
-		virtual Instruction_ptr Copy()
-		{
-			return Instruction_ptr(new Case(Address(), Value()));
-		}
+    virtual Instruction_ptr Copy()
+    {
+        return Instruction_ptr(new Case(Address(), Value()));
+    }
 
-        virtual void print(std::ostream& os)
-        {
-            Instruction::print(os);
-            os << boost::format("CASE %08lx\n") % Value();
-        }
+    virtual void print(std::ostream &os)
+    {
+        Instruction::print(os);
+        os << boost::format("CASE %08lx\n") % Value();
+    }
 
-		unsigned int Value() { return mValue; }
-		
-		virtual void Accept(InstructionVisitor& visitor)
-		{
-			visitor.Visit(*this);
-		}
+    unsigned int Value()
+    { return mValue; }
 
-	private:
-		unsigned int mValue;
+    virtual void Accept(InstructionVisitor &visitor)
+    {
+        visitor.Visit(*this);
+    }
+
+private:
+    unsigned int mValue;
 };/*}}}*/
 
 class DoWhile : public UnaryInstruction/*{{{*/
 {
-	public:
-		DoWhile(Addr ea, Expression_ptr value)
-			: UnaryInstruction(DO_WHILE, ea, value)
-		{mStatements = new Node_list();}
+public:
+    DoWhile(Addr ea, Expression_ptr value)
+            : UnaryInstruction(DO_WHILE, ea, value)
+    { mStatements = new Node_list(); }
 
-		virtual Instruction_ptr Copy()
-		{
-			DoWhile *dw = new DoWhile(Address(), Operand(0)->Copy());
+    virtual Instruction_ptr Copy()
+    {
+        DoWhile *dw = new DoWhile(Address(), Operand(0)->Copy());
 
-			//FIXME need to copy loop nodes here. If we ever need to copy a DoWhile Instruction.
+        //FIXME need to copy loop nodes here. If we ever need to copy a DoWhile Instruction.
 
-			return Instruction_ptr(dw);
-		}
+        return Instruction_ptr(dw);
+    }
 
-        virtual void print(std::ostream& os)
-        {
-            Instruction::print(os);
-            os << "DO_WHILE " << *Operand(0) << "\n";
-        }
+    virtual void print(std::ostream &os)
+    {
+        Instruction::print(os);
+        os << "DO_WHILE " << *Operand(0) << "\n";
+    }
 
-		virtual void Accept(InstructionVisitor& visitor)
-		{
-			visitor.Visit(*this);
-		}
+    virtual void Accept(InstructionVisitor &visitor)
+    {
+        visitor.Visit(*this);
+    }
 
-		virtual OperandTypeValue OperandType(int index)
-		{
-			return USE;
-		}
+    virtual OperandTypeValue OperandType(int index)
+    {
+        return USE;
+    }
 
-        void AddLoopNode(Node_ptr n)
-        {
-            Node_ptr np(n);
-            mStatements->push_back(np);
-        }
-       
-        Node_list &Statements()
-        {
-            return *mStatements;
-        }
-        
-	private:
-		Node_list *mStatements; //statement nodes
-	
+    void AddLoopNode(Node_ptr n)
+    {
+        Node_ptr np(n);
+        mStatements->push_back(np);
+    }
+
+    Node_list &Statements()
+    {
+        return *mStatements;
+    }
+
+private:
+    Node_list *mStatements; //statement nodes
+
 };/*}}}*/
 
 class While : public UnaryInstruction/*{{{*/
 {
-	public:
-		While(Addr ea, Expression_ptr value)
-			: UnaryInstruction(WHILE, ea, value)
-		{mStatements = new Node_list();}
+public:
+    While(Addr ea, Expression_ptr value)
+            : UnaryInstruction(WHILE, ea, value)
+    { mStatements = new Node_list(); }
 
-		virtual Instruction_ptr Copy()
-		{
-			While *w = new While(Address(), Operand(0)->Copy());
+    virtual Instruction_ptr Copy()
+    {
+        While *w = new While(Address(), Operand(0)->Copy());
 
-			//FIXME need to copy loop nodes here. If we ever need to copy a While Instruction.
+        //FIXME need to copy loop nodes here. If we ever need to copy a While Instruction.
 
-			return Instruction_ptr(w);
-		}
+        return Instruction_ptr(w);
+    }
 
-        virtual void print(std::ostream& os)
-        {
-            Instruction::print(os);
-            os << "WHILE " << *Operand(0) << "\n";
-        }
+    virtual void print(std::ostream &os)
+    {
+        Instruction::print(os);
+        os << "WHILE " << *Operand(0) << "\n";
+    }
 
-		virtual void Accept(InstructionVisitor& visitor)
-		{
-			visitor.Visit(*this);
-		}
+    virtual void Accept(InstructionVisitor &visitor)
+    {
+        visitor.Visit(*this);
+    }
 
-		virtual OperandTypeValue OperandType(int index)
-		{
-			return USE;
-		}
+    virtual OperandTypeValue OperandType(int index)
+    {
+        return USE;
+    }
 
-        void AddLoopNode(Node_ptr n)
-        {
-            Node_ptr np(n);
-            mStatements->push_back(np);
-        }
-        
-        Node_list &Statements()
-        {
-            return *mStatements;
-        }
-        
-	private:
-		Node_list *mStatements; //statement nodes
-	
+    void AddLoopNode(Node_ptr n)
+    {
+        Node_ptr np(n);
+        mStatements->push_back(np);
+    }
+
+    Node_list &Statements()
+    {
+        return *mStatements;
+    }
+
+private:
+    Node_list *mStatements; //statement nodes
+
 };/*}}}*/
 
 class If : public UnaryInstruction/*{{{*/
 {
-	public:
-		If(Addr ea, Expression_ptr value)
-			: UnaryInstruction(IF, ea, value)
-		{ }
+public:
+    If(Addr ea, Expression_ptr value)
+            : UnaryInstruction(IF, ea, value)
+    {}
 
-		virtual Instruction_ptr Copy()
-		{
-			return Instruction_ptr(new If(Address(), Operand(0)->Copy()));
-		}
+    virtual Instruction_ptr Copy()
+    {
+        return Instruction_ptr(new If(Address(), Operand(0)->Copy()));
+    }
 
-        virtual void print(std::ostream& os)
-        {
-            Instruction::print(os);
-            os << "IF " << *Operand(0) << "\n";
-        }
+    virtual void print(std::ostream &os)
+    {
+        Instruction::print(os);
+        os << "IF " << *Operand(0) << "\n";
+    }
 
-		virtual void Accept(InstructionVisitor& visitor)
-		{
-			visitor.Visit(*this);
-		}
+    virtual void Accept(InstructionVisitor &visitor)
+    {
+        visitor.Visit(*this);
+    }
 
-		virtual OperandTypeValue OperandType(int index)
-		{
-			return USE;
-		}
+    virtual OperandTypeValue OperandType(int index)
+    {
+        return USE;
+    }
 
-		Node_ptr trueNode;
-		Node_ptr falseNode;
-        
-	private:
+    Node_ptr trueNode;
+    Node_ptr falseNode;
 
-	
+private:
+
+
 };/*}}}*/
 
 class Break : public Instruction/*{{{*/
 {
-	public:
-		Break(Addr ea)
-			: Instruction(BREAK, ea)
-		{}
+public:
+    Break(Addr ea)
+            : Instruction(BREAK, ea)
+    {}
 
-		virtual Instruction_ptr Copy()
-		{
-			return Instruction_ptr(new Break(Address()));
-		}
+    virtual Instruction_ptr Copy()
+    {
+        return Instruction_ptr(new Break(Address()));
+    }
 
-        virtual void print(std::ostream& os)
-        {
-            Instruction::print(os);
-            os << "BREAK\n";
-        }
-		
-		virtual void Accept(InstructionVisitor& visitor)
-		{
-			visitor.Visit(*this);
-		}
+    virtual void print(std::ostream &os)
+    {
+        Instruction::print(os);
+        os << "BREAK\n";
+    }
 
-	private:
-		
+    virtual void Accept(InstructionVisitor &visitor)
+    {
+        visitor.Visit(*this);
+    }
+
+private:
+
 };/*}}}*/
 
 class Continue : public Instruction/*{{{*/
 {
-	public:
-		Continue(Addr ea)
-			: Instruction(CONTINUE, ea)
-		{}
+public:
+    Continue(Addr ea)
+            : Instruction(CONTINUE, ea)
+    {}
 
-		virtual Instruction_ptr Copy()
-		{
-			return Instruction_ptr(new Continue(Address()));
-		}
+    virtual Instruction_ptr Copy()
+    {
+        return Instruction_ptr(new Continue(Address()));
+    }
 
-        virtual void print(std::ostream& os)
-        {
-            Instruction::print(os);
-            os << "CONTINUE\n";
-        }
-		
-		virtual void Accept(InstructionVisitor& visitor)
-		{
-			visitor.Visit(*this);
-		}
+    virtual void print(std::ostream &os)
+    {
+        Instruction::print(os);
+        os << "CONTINUE\n";
+    }
 
-	private:
-		
+    virtual void Accept(InstructionVisitor &visitor)
+    {
+        visitor.Visit(*this);
+    }
+
+private:
+
 };/*}}}*/
 
 /**
@@ -1035,114 +1104,115 @@ class Continue : public Instruction/*{{{*/
  */
 class Throw : public Instruction/*{{{*/
 {
-	public:
-		Throw(Addr ea, Expression_ptr exception, const std::string& dataType)
-			: Instruction(THROW, ea), mException(exception), mDataType(dataType)
-		{}
+public:
+    Throw(Addr ea, Expression_ptr exception, const std::string &dataType)
+            : Instruction(THROW, ea), mException(exception), mDataType(dataType)
+    {}
 
-		virtual Instruction_ptr Copy()
-		{
-			if(IsRethrow())
-				return Instruction_ptr(new Throw(Address()));
+    virtual Instruction_ptr Copy()
+    {
+        if (IsRethrow())
+            return Instruction_ptr(new Throw(Address()));
 
-			return Instruction_ptr(new Throw(Address(), mException->Copy(), DataType()));
-		}
+        return Instruction_ptr(new Throw(Address(), mException->Copy(), DataType()));
+    }
 
-        virtual void print(std::ostream& os)
-        {
-            Instruction::print(os);
-            os << "THROW " << mDataType << " " << *mException << "\n";
-        }
+    virtual void print(std::ostream &os)
+    {
+        Instruction::print(os);
+        os << "THROW " << mDataType << " " << *mException << "\n";
+    }
 
-		Throw(Addr ea)
-			: Instruction(THROW, ea)
-		{}
+    Throw(Addr ea)
+            : Instruction(THROW, ea)
+    {}
 
-		virtual void Accept(InstructionVisitor& visitor)
-		{
-			visitor.Visit(*this);
-		}
+    virtual void Accept(InstructionVisitor &visitor)
+    {
+        visitor.Visit(*this);
+    }
 
-		virtual int OperandCount()
-		{ 
-			return IsRethrow() ? 0 : 1; 
-		}
-		
-		virtual Expression_ptr Operand(int index)
-		{
-			Expression_ptr result;
-			if (0 == index)
-				result = mException;
-			else
-				msg("ERROR: Throw(%d) -> NULL\n", index);
-			return result;
-		}
+    virtual int OperandCount()
+    {
+        return IsRethrow() ? 0 : 1;
+    }
 
-		virtual void Operand(int index, Expression_ptr e)
-		{
-			if (0 == index)
-				mException = e;
-			else
-				msg("ERROR: Throw(%d, %08lx)\n", index, e.get());
-		}
+    virtual Expression_ptr Operand(int index)
+    {
+        Expression_ptr result;
+        if (0 == index)
+            result = mException;
+        else
+            msg("ERROR: Throw(%d) -> NULL\n", index);
+        return result;
+    }
 
-		bool IsRethrow()
-		{
-			return NULL == mException.get();
-		}
+    virtual void Operand(int index, Expression_ptr e)
+    {
+        if (0 == index)
+            mException = e;
+        else
+            msg("ERROR: Throw(%d, %08lx)\n", index, e.get());
+    }
 
-		Expression_ptr Exception()
-		{
-			return mException;
-		}
-		
-		std::string DataType() { return mDataType; }
+    bool IsRethrow()
+    {
+        return NULL == mException.get();
+    }
 
-	private:
-		Expression_ptr mException;
-		std::string mDataType;
+    Expression_ptr Exception()
+    {
+        return mException;
+    }
+
+    std::string DataType()
+    { return mDataType; }
+
+private:
+    Expression_ptr mException;
+    std::string mDataType;
 };/*}}}*/
 
 
 class ErasePool/*{{{*/
 {
-	private:
-		typedef std::list<Instruction_list::iterator> IteratorList;
+private:
+    typedef std::list<Instruction_list::iterator> IteratorList;
 
-		IteratorList mIterators;
-		Instruction_list& mInstructions;
+    IteratorList mIterators;
+    Instruction_list &mInstructions;
 
-		struct EraseHelper
-		{
-			EraseHelper(Instruction_list& instructions)
-				: mInstructions(instructions)
-			{}
-		
-			Instruction_list& mInstructions;
-			
-			void operator () (Instruction_list::iterator item)
-			{
-				mInstructions.erase(item);
-			}
-		};
-			
-	public:
-		ErasePool(Instruction_list& instructions)
-			: mInstructions(instructions)
-		{}
-			
-		~ErasePool()
-		{
-			for_each(mIterators.begin(), mIterators.end(), EraseHelper(mInstructions));
-		}
+    struct EraseHelper
+    {
+        EraseHelper(Instruction_list &instructions)
+                : mInstructions(instructions)
+        {}
 
-		void Erase(Instruction_list::iterator item)
-		{
-			if ((**item).MarkForDeletion())
-			{
-				mIterators.push_back(item);
-			}
-		}
+        Instruction_list &mInstructions;
+
+        void operator()(Instruction_list::iterator item)
+        {
+            mInstructions.erase(item);
+        }
+    };
+
+public:
+    ErasePool(Instruction_list &instructions)
+            : mInstructions(instructions)
+    {}
+
+    ~ErasePool()
+    {
+        for_each(mIterators.begin(), mIterators.end(), EraseHelper(mInstructions));
+    }
+
+    void Erase(Instruction_list::iterator item)
+    {
+        if ((**item).MarkForDeletion())
+        {
+            mIterators.push_back(item);
+        }
+    }
 };/*}}}*/
 
 #endif // _INSTRUCTION_HPP

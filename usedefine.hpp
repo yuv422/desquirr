@@ -25,7 +25,7 @@
 
 #include "desquirr.hpp"
 
-void UpdateUsesAndDefinitions(Node_list& nodes);
+void UpdateUsesAndDefinitions(Node_list &nodes);
 
 #endif // _USEDEFINE_HPP
 

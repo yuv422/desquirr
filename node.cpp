@@ -24,59 +24,55 @@
 #include <stack>
 
 #include "node.hpp"
-#include "dataflow.hpp"
 
 //defined in idapro.cpp
 extern bool search_comment(ea_t ea, const char *searchString);
 
 // this finds consequetive sequences of instructions.
-void Node::CreateList(Instruction_list& instructions, Node_list& nodes)/*{{{*/
+void Node::CreateList(Instruction_list &instructions, Node_list &nodes)/*{{{*/
 {
-	Instruction_list::iterator cur = instructions.begin();
+    Instruction_list::iterator cur = instructions.begin();
 
-	if (instructions.end() == cur)
-		return;
+    if (instructions.end() == cur)
+        return;
 
-	Instruction_list::iterator begin = cur++;
+    Instruction_list::iterator begin = cur++;
 
-	while (cur != instructions.end())
-	{
-		Node_ptr node;
-		Instruction_ptr instruction = *cur;
+    while (cur != instructions.end())
+    {
+        Node_ptr node;
+        Instruction_ptr instruction = *cur;
 
 //		message("%p\n", instruction->Address());
 
-		switch (instruction->Type())
-		{
-			case Instruction::CONDITIONAL_JUMP:
-				cur++;
-				node = ConditionalJumpNode::CreateFrom(instruction, 
-						instructions.end() == cur ? INVALID_ADDR : (**cur).Address(),
-						begin, cur);
-				begin = cur;
-				break;
+        switch (instruction->Type())
+        {
+            case Instruction::CONDITIONAL_JUMP: cur++;
+                node = ConditionalJumpNode::CreateFrom(instruction,
+                                                       instructions.end() == cur ? INVALID_ADDR : (**cur).Address(),
+                                                       begin, cur);
+                begin = cur;
+                break;
 
-			case Instruction::JUMP:
-				cur++;
-				node = JumpNode::CreateFrom(instruction, begin, cur);
-				begin = cur;
-				break;
+            case Instruction::JUMP: cur++;
+                node = JumpNode::CreateFrom(instruction, begin, cur);
+                begin = cur;
+                break;
 
-			case Instruction::LABEL:
-			case Instruction::CASE:
-				if (begin != cur)
-				{
-					node.reset( new FallThroughNode(instruction->Address(), begin, cur) );
-					begin = cur; 
-				}
-				cur++;	// yes, increase after node creation, not before 
-				break;
+            case Instruction::LABEL:
+            case Instruction::CASE:
+                if (begin != cur)
+                {
+                    node.reset(new FallThroughNode(instruction->Address(), begin, cur));
+                    begin = cur;
+                }
+                cur++;    // yes, increase after node creation, not before
+                break;
 
-			case Instruction::RETURN:
-				cur++;
-				node.reset( new ReturnNode(begin, cur) );
-				begin = cur;
-				break;
+            case Instruction::RETURN: cur++;
+                node.reset(new ReturnNode(begin, cur));
+                begin = cur;
+                break;
 /*
  * TODO: currently call's are in the instruction list as:
  *     AssignmentInstruction(CallExpression())
@@ -93,157 +89,159 @@ void Node::CreateList(Instruction_list& instructions, Node_list& nodes)/*{{{*/
                 begin = cur;
                 break;
 */
-			default:
-				cur++;
-				break;
-		}
+            default: cur++;
+                break;
+        }
 
-		if (node.get())
-		{
-			nodes.push_back(node);
-		}
-	}
+        if (node.get())
+        {
+            nodes.push_back(node);
+        }
+    }
 
-	ConnectSuccessors(nodes);
-	CreateSharedNodes(nodes);
+    ConnectSuccessors(nodes);
+    CreateSharedNodes(nodes);
 }/*}}}*/
 
 Node_ptr Node::CreateFrom(Addr address)
 {
-	Node_ptr result(new Node(FALL_THROUGH, address));
-	return result;
+    Node_ptr result(new Node(FALL_THROUGH, address));
+    return result;
 }
 
 Node_ptr JumpNode::CreateFrom(Instruction_ptr i,/*{{{*/
-		Instruction_list::iterator begin,
-		Instruction_list::iterator end)
+                              Instruction_list::iterator begin,
+                              Instruction_list::iterator end)
 {
-	Jump* jump = static_cast<Jump*>(i.get());
-	Expression_ptr destination = jump->Operand();
-	Addr address;
+    Jump *jump = static_cast<Jump *>(i.get());
+    Expression_ptr destination = jump->Operand();
+    Addr address;
 
-	if (destination->IsType(Expression::GLOBAL))
-	{
-		address = static_cast<GlobalVariable*>(destination.get())->Address();
-	}
-	else
-	{
-		message("%p Error! Jump destination is not a GlobalVariable!\n", jump->Address());
-		address = INVALID_ADDR;
-	}
+    if (destination->IsType(Expression::GLOBAL))
+    {
+        address = static_cast<GlobalVariable *>(destination.get())->Address();
+    }
+    else
+    {
+        message("%p Error! Jump destination is not a GlobalVariable!\n", jump->Address());
+        address = INVALID_ADDR;
+    }
 
-	Node_ptr result ( new JumpNode(address, begin, end) );
-	return result;
+    Node_ptr result(new JumpNode(address, begin, end));
+    return result;
 }/*}}}*/
 
 Node_ptr ConditionalJumpNode::CreateFrom(Instruction_ptr i,/*{{{*/
-		Addr follower,
-		Instruction_list::iterator begin,
-		Instruction_list::iterator end)
+                                         Addr follower,
+                                         Instruction_list::iterator begin,
+                                         Instruction_list::iterator end)
 {
-	ConditionalJump* jump = static_cast<ConditionalJump*>(i.get());
-	Expression_ptr destination = jump->Second();
-	Addr address;
+    ConditionalJump *jump = static_cast<ConditionalJump *>(i.get());
+    Expression_ptr destination = jump->Second();
+    Addr address;
 
-	if (destination->IsType(Expression::GLOBAL))
-	{
-		address = static_cast<GlobalVariable*>(destination.get())->Address();
-	}
-	else
-	{
-		message("%p Error! Jump destination is not a GlobalVariable!\n", jump->Address());
-		address = INVALID_ADDR;
-	}
+    if (destination->IsType(Expression::GLOBAL))
+    {
+        address = static_cast<GlobalVariable *>(destination.get())->Address();
+    }
+    else
+    {
+        message("%p Error! Jump destination is not a GlobalVariable!\n", jump->Address());
+        address = INVALID_ADDR;
+    }
 
-	return Node_ptr( new ConditionalJumpNode(address, follower, begin, end) );
+    return Node_ptr(new ConditionalJumpNode(address, follower, begin, end));
 }/*}}}*/
 
-void Node::RemoveDeletedNodes(Node_list& nodes)
+void Node::RemoveDeletedNodes(Node_list &nodes)
 {
-	for (Node_list::iterator n = nodes.begin();
-		n != nodes.end();
-		)
-	{        
-		Node_ptr node = *n;
-		n++;
+    for (Node_list::iterator n = nodes.begin();
+         n != nodes.end();
+            )
+    {
+        Node_ptr node = *n;
+        n++;
 
-		if(node->Type() == Node::TO_BE_DELETED)
-		{
-			msg("delete node %a\n", node->Address());
-			nodes.remove(node);
-		}
-	}
+        if (node->Type() == Node::TO_BE_DELETED)
+        {
+            msg("delete node %a\n", node->Address());
+            nodes.remove(node);
+        }
+    }
 }
 
 void Node::CopySuccessors(Node_ptr node)
 {
-	for(int i = 0; i < node->SuccessorCount();i++)
-	{
-		ConnectSuccessor(i, node->Successor(i));
-	}
+    for (int i = 0; i < node->SuccessorCount(); i++)
+    {
+        ConnectSuccessor(i, node->Successor(i));
+    }
 }
 
 //remove goto instructions from FALL_THROUGH node.
 //remove label instructions unless the label is the first instruction in the node.
 void FallThroughNode::Cleanup(bool cleanAll)
 {
-	for (Instruction_list::iterator i = Instructions().begin();
-		i != Instructions().end();
-		)
-	{
-		Instruction_ptr ptr = *i;
-		i++;
+    for (Instruction_list::iterator i = Instructions().begin();
+         i != Instructions().end();
+            )
+    {
+        Instruction_ptr ptr = *i;
+        i++;
 
-		if(ptr->Type() == Instruction::JUMP || (ptr->Type() == Instruction::LABEL && (cleanAll || ptr != Instructions().front())))
-			Instructions().remove(ptr);
-	}
+        if (ptr->Type() == Instruction::JUMP ||
+            (ptr->Type() == Instruction::LABEL && (cleanAll || ptr != Instructions().front())))
+            Instructions().remove(ptr);
+    }
 }
 
 //remove goto instructions from FALL_THROUGH node unless last instruction in node.
 //remove label instructions unless the label is the first instruction in the node.
 void JumpNode::Cleanup(bool cleanAll)
 {
-	for (Instruction_list::iterator i = Instructions().begin();
-		i != Instructions().end();
-		)
-	{
-		Instruction_ptr ptr = *i;
-		i++;
+    for (Instruction_list::iterator i = Instructions().begin();
+         i != Instructions().end();
+            )
+    {
+        Instruction_ptr ptr = *i;
+        i++;
 
-		if((ptr->Type() == Instruction::JUMP && (cleanAll || ptr != Instructions().back())) || (ptr->Type() == Instruction::LABEL && (cleanAll || ptr != Instructions().front())))
-			Instructions().remove(ptr);
-	}
+        if ((ptr->Type() == Instruction::JUMP && (cleanAll || ptr != Instructions().back())) ||
+            (ptr->Type() == Instruction::LABEL && (cleanAll || ptr != Instructions().front())))
+            Instructions().remove(ptr);
+    }
 }
 
 //remove goto instructions from CONDITIONAL_JUMP node.
 //remove label instructions unless the label is the first instruction in the node.
 void ConditionalJumpNode::Cleanup(bool cleanAll)
 {
-	for (Instruction_list::iterator i = Instructions().begin();
-		i != Instructions().end();
-		)
-	{
-		Instruction_ptr ptr = *i;
-		i++;
+    for (Instruction_list::iterator i = Instructions().begin();
+         i != Instructions().end();
+            )
+    {
+        Instruction_ptr ptr = *i;
+        i++;
 
-		if(ptr->Type() == Instruction::JUMP || (ptr->Type() == Instruction::LABEL && (cleanAll || ptr != Instructions().front())))
-			Instructions().remove(ptr);
-	}
+        if (ptr->Type() == Instruction::JUMP ||
+            (ptr->Type() == Instruction::LABEL && (cleanAll || ptr != Instructions().front())))
+            Instructions().remove(ptr);
+    }
 }
 
 /* Find DU-chains {{{ */
 struct FindDefintionUseChainsHelper
 {
-	void operator() (Node_ptr node)
-	{
-		Instruction::FindDefintionUseChains(node->Instructions());
-	}
+    void operator()(Node_ptr node)
+    {
+        Instruction::FindDefintionUseChains(node->Instructions());
+    }
 };
 
-void Node::FindDefintionUseChains(Node_list& nodes)
+void Node::FindDefintionUseChains(Node_list &nodes)
 {
-	for_each(nodes.begin(), nodes.end(), 
-			FindDefintionUseChainsHelper());
+    for_each(nodes.begin(), nodes.end(),
+             FindDefintionUseChainsHelper());
 }/*}}}*/
 
 /* Connect successors {{{ */
@@ -251,127 +249,126 @@ void Node::FindDefintionUseChains(Node_list& nodes)
 typedef std::map<Addr, Node_ptr> Node_map;
 
 
-
 struct ConnectSuccessorsMapBuilder
 {
-	Node_map& mMap;
-	
-	ConnectSuccessorsMapBuilder(Node_map& map)
-		: mMap(map)
-	{}
-	
-	void operator() (Node_ptr node)
-	{
-		mMap[node->Address()] = node;
-	}
+    Node_map &mMap;
+
+    ConnectSuccessorsMapBuilder(Node_map &map)
+            : mMap(map)
+    {}
+
+    void operator()(Node_ptr node)
+    {
+        mMap[node->Address()] = node;
+    }
 };
 
 struct ConnectSuccessorsHelper
 {
-	Node_map& mMap;
-	
-	ConnectSuccessorsHelper(Node_map& map)
-		: mMap(map)
-	{}
+    Node_map &mMap;
 
-	void operator() (Node_ptr node)
-	{
-		for (int i = 0; i < node->SuccessorCount(); i++)
-		{
-			Node_map::iterator item = mMap.find( node->SuccessorAddress(i) );
-			if (mMap.end() != item)
-			{
-			    Node_ptr pred_node = static_cast<Node_ptr>(item->second); //FIXME do we still need this?
-			    pred_node->ConnectPredecessor(node);
-			    
-				bool success = node->ConnectSuccessor(i, item->second);
-				if (!success)
-				{
-					message("Failed to connect successor\n");
-				}
-			}
-			else
-			{
-				message("%p Unable to find successor block with address %p\n",
-						node->Address(),
-						node->SuccessorAddress(i) );
-			}
-		}
-	}
+    ConnectSuccessorsHelper(Node_map &map)
+            : mMap(map)
+    {}
+
+    void operator()(Node_ptr node)
+    {
+        for (int i = 0; i < node->SuccessorCount(); i++)
+        {
+            Node_map::iterator item = mMap.find(node->SuccessorAddress(i));
+            if (mMap.end() != item)
+            {
+                Node_ptr pred_node = static_cast<Node_ptr>(item->second); //FIXME do we still need this?
+                pred_node->ConnectPredecessor(node);
+
+                bool success = node->ConnectSuccessor(i, item->second);
+                if (!success)
+                {
+                    message("Failed to connect successor\n");
+                }
+            }
+            else
+            {
+                message("%p Unable to find successor block with address %p\n",
+                        node->Address(),
+                        node->SuccessorAddress(i));
+            }
+        }
+    }
 };
 
-void Node::ConnectSuccessors(Node_list& nodes)
+void Node::ConnectSuccessors(Node_list &nodes)
 {
-	Node_map map;
-	
-	for_each(nodes.begin(), nodes.end(), 
-			ConnectSuccessorsMapBuilder(map));
-	
-	for_each(nodes.begin(), nodes.end(), 
-			ConnectSuccessorsHelper(map));
+    Node_map map;
+
+    for_each(nodes.begin(), nodes.end(),
+             ConnectSuccessorsMapBuilder(map));
+
+    for_each(nodes.begin(), nodes.end(),
+             ConnectSuccessorsHelper(map));
 }/*}}}*/
 
-void Node::CreateSharedNodes(Node_list& nodes)
+void Node::CreateSharedNodes(Node_list &nodes)
 {
-	char comment_buf[1024];
+    char comment_buf[1024];
 
-	for (Node_list::iterator n = nodes.begin(); n != nodes.end(); n++)
-	{        
-		Node_ptr node = *n;
-		if(search_comment(node->Address(), "D:SharedNode") == true)
-		{
-			//duplicate node here.
-			if(node->mPreds.size() > 1)
-			{
-				Node_list::iterator p = node->mPreds.begin();
-				p++; //skip first predecessor. 
-				for (; p != node->mPreds.end(); p++)
-				{
-					Node_ptr predNode = *p;
-					
-					Node_ptr new_node = node->Copy();
-					new_node->CopySuccessors(node);
+    for (Node_list::iterator n = nodes.begin(); n != nodes.end(); n++)
+    {
+        Node_ptr node = *n;
+        if (search_comment(node->Address(), "D:SharedNode") == true)
+        {
+            //duplicate node here.
+            if (node->mPreds.size() > 1)
+            {
+                Node_list::iterator p = node->mPreds.begin();
+                p++; //skip first predecessor.
+                for (; p != node->mPreds.end(); p++)
+                {
+                    Node_ptr predNode = *p;
 
-					predNode->ReconnectSuccessor(node, new_node); //reconnect successors
-					//nodes.insert(nodes.begin(), new_node);
-					nodes.insert(n, new_node);
-				}
-			}
-		}
-	}
+                    Node_ptr new_node = node->Copy();
+                    new_node->CopySuccessors(node);
+
+                    predNode->ReconnectSuccessor(node, new_node); //reconnect successors
+                    //nodes.insert(nodes.begin(), new_node);
+                    nodes.insert(n, new_node);
+                }
+            }
+        }
+    }
 }
 
 /* Live register analysis {{{ */
-void Node::LiveRegisterAnalysis(Node_list& nodes)
+void Node::LiveRegisterAnalysis(Node_list &nodes)
 {
-	bool changed;
+    bool changed;
 
-	do
-	{
+    do
+    {
 //		message(".");
-		changed = false;
+        changed = false;
 
-		for (Node_list::reverse_iterator item = nodes.rbegin();
-				item != nodes.rend();
-				item++)
-		{
-			Node_ptr node = *item;
-			
-			BoolArray prev_live_in = node->mLiveIn;
-			BoolArray prev_live_out = node->mLiveOut;
-			
-			for (int i = 0; i < node->SuccessorCount(); i++)
-			{
-				if (node->Successor(i).get())
-					node->mLiveOut |= node->Successor(i)->mLiveIn;
-			}
+        for (Node_list::reverse_iterator item = nodes.rbegin();
+             item != nodes.rend();
+             item++)
+        {
+            Node_ptr node = *item;
 
-			node->mLiveIn = node->Uses() | (node->mLiveOut & ~node->Definitions());
+            BoolArray prev_live_in = node->mLiveIn;
+            BoolArray prev_live_out = node->mLiveOut;
 
-			if ((prev_live_in != node->mLiveIn) || (prev_live_out != node->mLiveOut))
-				changed = true;
-		}
-	
-	} while (changed);
+            for (int i = 0; i < node->SuccessorCount(); i++)
+            {
+                if (node->Successor(i).get())
+                    node->mLiveOut |= node->Successor(i)->mLiveIn;
+            }
+
+            node->mLiveIn = node->Uses() | (node->mLiveOut & ~node->Definitions());
+
+            if ((prev_live_in != node->mLiveIn) || (prev_live_out != node->mLiveOut))
+                changed = true;
+        }
+
+    } while (changed);
 }/*}}}*/
 

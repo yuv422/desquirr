@@ -28,192 +28,192 @@
 
 class Analysis/*{{{*/
 {
-	protected:
-		Analysis()
-			: mInstructions(NULL)
-		{}
+protected:
+    Analysis()
+            : mInstructions(NULL)
+    {}
 
-    public:
-		virtual ~Analysis() {}
+public:
+    virtual ~Analysis()
+    {}
 
-	public:
-		enum AnalysisResult
-		{
-			CONTINUE,
-			INSTRUCTION_REMOVED
-		};
-	
-		/**
-		 * Analyze an instruction list (call Instructions() to get it)
-		 */
-		void AnalyzeInstructionList()/*{{{*/
-		{
-			Instruction_list& list = Instructions();
+public:
+    enum AnalysisResult
+    {
+        CONTINUE,
+        INSTRUCTION_REMOVED
+    };
 
-			for (Instruction_list::iterator i = list.begin();
-					i != list.end();
-					i++)
-			{
-				Iterator(i);
-				AnalyzeInstruction();
-			}
-		}/*}}}*/
+    /**
+     * Analyze an instruction list (call Instructions() to get it)
+     */
+    void AnalyzeInstructionList()/*{{{*/
+    {
+        Instruction_list &list = Instructions();
 
-		/**
-		 * Analyze an individual instruction (call Instr() to get it)
-		 */
-		void AnalyzeInstruction()/*{{{*/
-		{
-			if (Instr()->Type() == Instruction::TO_BE_DELETED)
-			{
-				return;
-			}
-			
-			if (INSTRUCTION_REMOVED == OnInstruction())
-				return;
-			
-			switch (Instr()->Type())
-			{
-				case Instruction::ASSIGNMENT:
-					OnAssignment( static_cast<Assignment*>(Instr().get()) );
-					break;
+        for (Instruction_list::iterator i = list.begin();
+             i != list.end();
+             i++)
+        {
+            Iterator(i);
+            AnalyzeInstruction();
+        }
+    }/*}}}*/
 
-				case Instruction::LOW_LEVEL:    // this calls the processor specific handling
-					OnLowLevel( Instr().get() );
-					break;
+    /**
+     * Analyze an individual instruction (call Instr() to get it)
+     */
+    void AnalyzeInstruction()/*{{{*/
+    {
+        if (Instr()->Type() == Instruction::TO_BE_DELETED)
+        {
+            return;
+        }
 
-				case Instruction::POP:
-					OnPop( static_cast<Pop*>(Instr().get()) );
-					break;
+        if (INSTRUCTION_REMOVED == OnInstruction())
+            return;
 
-				case Instruction::PUSH:
-					OnPush( static_cast<Push*>(Instr().get()) );
-					break;
+        switch (Instr()->Type())
+        {
+            case Instruction::ASSIGNMENT: OnAssignment(static_cast<Assignment *>(Instr().get()));
+                break;
 
-				case Instruction::JUMP:
-					OnJump( static_cast<Jump*>(Instr().get()) );
-					break;
+            case Instruction::LOW_LEVEL:    // this calls the processor specific handling
+                OnLowLevel(Instr().get());
+                break;
 
-				case Instruction::CONDITIONAL_JUMP:
-					OnConditionalJump( static_cast<ConditionalJump*>(Instr().get()) );
-					break;
+            case Instruction::POP: OnPop(static_cast<Pop *>(Instr().get()));
+                break;
 
-				default:
-					break;
-			}
-		}/*}}}*/
+            case Instruction::PUSH: OnPush(static_cast<Push *>(Instr().get()));
+                break;
 
-		/**
-		 * Handle non-specific things for all instructions
-		 *
-		 * \return true to continue to specific instruction
-		 */
-		virtual AnalysisResult OnInstruction()
-		{
-			return CONTINUE;
-		}
-		
-		/**
-		 * Handle an Assignment instruction
-		 */
-		virtual void OnAssignment(Assignment* assignment)
-		{ }
+            case Instruction::JUMP: OnJump(static_cast<Jump *>(Instr().get()));
+                break;
 
-		/**
-		 * Handle a Push instruction
-		 */
-		virtual void OnPush(Push* push)
-		{ }
+            case Instruction::CONDITIONAL_JUMP: OnConditionalJump(static_cast<ConditionalJump *>(Instr().get()));
+                break;
 
-		/**
-		 * Handle a Pop instruction
-		 */
-		virtual void OnPop(Pop* pop)
-		{ }
+            default: break;
+        }
+    }/*}}}*/
 
-		/**
-		 * Handle a LowLevel instruction
-		 */
-		virtual void OnLowLevel(Instruction* lowLevel)
-		{ }
+    /**
+     * Handle non-specific things for all instructions
+     *
+     * \return true to continue to specific instruction
+     */
+    virtual AnalysisResult OnInstruction()
+    {
+        return CONTINUE;
+    }
 
-		/**
-		 * Handle a Jump instruction
-		 */
-		virtual void OnJump(Jump* jump)
-		{ }
+    /**
+     * Handle an Assignment instruction
+     */
+    virtual void OnAssignment(Assignment *assignment)
+    {}
 
-		/**
-		 * Handle a ConditionalJump instruction
-		 */
-		virtual void OnConditionalJump(ConditionalJump* conditionalJump)
-		{ }
+    /**
+     * Handle a Push instruction
+     */
+    virtual void OnPush(Push *push)
+    {}
 
-		Instruction_list::iterator Insert(Instruction_ptr instruction)/*{{{*/
-		{
-			return Instructions().insert(Iterator(), instruction);
-		}/*}}}*/
-		
-		Instruction_list::iterator Replace(Instruction_ptr instruction)/*{{{*/
-		{
-			Erase(Iterator());
-			return Insert(instruction);
-		}/*}}}*/
-		
-		Instruction_list::iterator Insert(Instruction* instruction)/*{{{*/
-		{
-			return Insert( Instruction_ptr(instruction) );
-		}/*}}}*/
+    /**
+     * Handle a Pop instruction
+     */
+    virtual void OnPop(Pop *pop)
+    {}
 
-		Instruction_list::iterator Replace(Instruction* instruction)/*{{{*/
-		{
-			return Replace( Instruction_ptr(instruction) );
-		}/*}}}*/
+    /**
+     * Handle a LowLevel instruction
+     */
+    virtual void OnLowLevel(Instruction *lowLevel)
+    {}
 
-		void EraseInstructions(int count)/*{{{*/
-		{
-			for(Instruction_list::iterator item = Iterator();
-					count > 0 && item != Instructions().end();
-					item++)
-			{
-				Erase(item);
-				count--;
-			}
-		}/*}}}*/
+    /**
+     * Handle a Jump instruction
+     */
+    virtual void OnJump(Jump *jump)
+    {}
 
-		/** Add an instruction iterator to erase pool */
-		void Erase(Instruction_list::iterator i) { mErasePool->Erase(i); }
+    /**
+     * Handle a ConditionalJump instruction
+     */
+    virtual void OnConditionalJump(ConditionalJump *conditionalJump)
+    {}
 
-		/** Get instruction */
-		Instruction_ptr Instr() { return *mIterator; }
+    Instruction_list::iterator Insert(Instruction_ptr instruction)/*{{{*/
+    {
+        return Instructions().insert(Iterator(), instruction);
+    }/*}}}*/
 
-		/** Set instruction list */
-		void Instructions(Instruction_list* instructions)
-		{
-			mInstructions = instructions;
-			if (instructions)
-			{
-				mErasePool.reset( new ErasePool(*instructions) );
-			}
-			else
-			{
-				mErasePool.reset();
-			}
-		}
-		
-		/** Get instruction list */
-		Instruction_list& Instructions() { return *mInstructions; }
+    Instruction_list::iterator Replace(Instruction_ptr instruction)/*{{{*/
+    {
+        Erase(Iterator());
+        return Insert(instruction);
+    }/*}}}*/
 
-		/** Get instruction iterator */
-		Instruction_list::iterator Iterator() { return mIterator; }
+    Instruction_list::iterator Insert(Instruction *instruction)/*{{{*/
+    {
+        return Insert(Instruction_ptr(instruction));
+    }/*}}}*/
 
-		/** Set instruction iterator */
-		void Iterator(Instruction_list::iterator i) { mIterator = i; }
+    Instruction_list::iterator Replace(Instruction *instruction)/*{{{*/
+    {
+        return Replace(Instruction_ptr(instruction));
+    }/*}}}*/
 
-	private:
-		Instruction_list* mInstructions;
-		ErasePool_ptr mErasePool;
-		Instruction_list::iterator mIterator;
+    void EraseInstructions(int count)/*{{{*/
+    {
+        for (Instruction_list::iterator item = Iterator();
+             count > 0 && item != Instructions().end();
+             item++)
+        {
+            Erase(item);
+            count--;
+        }
+    }/*}}}*/
+
+    /** Add an instruction iterator to erase pool */
+    void Erase(Instruction_list::iterator i)
+    { mErasePool->Erase(i); }
+
+    /** Get instruction */
+    Instruction_ptr Instr()
+    { return *mIterator; }
+
+    /** Set instruction list */
+    void Instructions(Instruction_list *instructions)
+    {
+        mInstructions = instructions;
+        if (instructions)
+        {
+            mErasePool.reset(new ErasePool(*instructions));
+        }
+        else
+        {
+            mErasePool.reset();
+        }
+    }
+
+    /** Get instruction list */
+    Instruction_list &Instructions()
+    { return *mInstructions; }
+
+    /** Get instruction iterator */
+    Instruction_list::iterator Iterator()
+    { return mIterator; }
+
+    /** Set instruction iterator */
+    void Iterator(Instruction_list::iterator i)
+    { mIterator = i; }
+
+private:
+    Instruction_list *mInstructions;
+    ErasePool_ptr mErasePool;
+    Instruction_list::iterator mIterator;
 };/*}}}*/
 
 

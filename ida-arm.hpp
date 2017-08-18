@@ -29,30 +29,35 @@
 // from arm.hpp
 class IdaArm : public IdaPro
 {
-	public:
-		virtual std::string RegisterName(RegisterIndex index) const;
-		static const char* const ConditionOp(int condition);
-		virtual void FillList(func_t* function, Instruction_list& instructions);
-		virtual void DumpInsn(insn_t& insn);
-        virtual bool ParametersOnStack() { return false; }
+public:
+    virtual std::string RegisterName(RegisterIndex index) const;
+
+    static const char *const ConditionOp(int condition);
+
+    virtual void FillList(func_t *function, Instruction_list &instructions);
+
+    virtual void DumpInsn(insn_t &insn);
+
+    virtual bool ParametersOnStack()
+    { return false; }
 
     enum ArmRegNo
     {
-     R0, R1,  R2,  R3,  R4,  R5,  R6,  R7,
-     R8, R9, R10, 
-	 R11, FP=R11,
-	 R12,
-	 R13, SP=R13, 
-	 R14, LR=R14,
-	 R15, PC=R15,
-     CPSR, NR_NORMAL_REGISTERS=CPSR,
-	 CPSR_flg,
-     SPSR, SPSR_flg,
-     T, rVcs, rVds,            // virtual registers for code and data segments
-     Racc0,                 // Intel xScale coprocessor accumulator
+        R0, R1, R2, R3, R4, R5, R6, R7,
+        R8, R9, R10,
+        R11, FP = R11,
+        R12,
+        R13, SP = R13,
+        R14, LR = R14,
+        R15, PC = R15,
+        CPSR, NR_NORMAL_REGISTERS = CPSR,
+        CPSR_flg,
+        SPSR, SPSR_flg,
+        T, rVcs, rVds,            // virtual registers for code and data segments
+        Racc0,                 // Intel xScale coprocessor accumulator
 // extended for desquirr
-     Cond,
-     Temp
+                Cond,
+        Temp
     };
 
 };

@@ -29,23 +29,27 @@
 
 class IdaX86 : public IdaPro
 {
-	public:
-		IdaX86()
-			: mIs32Bit(false)
-		{
-		}
+public:
+    IdaX86()
+            : mIs32Bit(false)
+    {
+    }
 
-		virtual std::string RegisterName(RegisterIndex index) const;
-		virtual void FillList(func_t* function, Instruction_list& instructions);
-		virtual void DumpInsn(insn_t& insn);
-        virtual bool ParametersOnStack() { return true; }
+    virtual std::string RegisterName(RegisterIndex index) const;
 
-		/** Look for Borland C++ throw instruction */
-		static void TryBorlandThrow(DataFlowAnalysis* analysis, 
-				Assignment* assignment);
+    virtual void FillList(func_t *function, Instruction_list &instructions);
 
-	private:
-		bool mIs32Bit;
+    virtual void DumpInsn(insn_t &insn);
+
+    virtual bool ParametersOnStack()
+    { return true; }
+
+    /** Look for Borland C++ throw instruction */
+    static void TryBorlandThrow(DataFlowAnalysis *analysis,
+                                Assignment *assignment);
+
+private:
+    bool mIs32Bit;
 };
 
 

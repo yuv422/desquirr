@@ -25,272 +25,274 @@
 #include "node.hpp"
 
 #include "idainternal.hpp"  // for LowLevel
+
 /**
  * Instruction visitor for code generation
  */
 class CodeGenerator : public InstructionVisitor
 {
-	public:
-		CodeGenerator(CodeStyle style)
-			: mStyle(style)
-		{}
+public:
+    CodeGenerator(CodeStyle style)
+            : mStyle(style)
+    {}
 
-		virtual ~CodeGenerator()
-		{
-			static const int  MAX_LINE_LEN   = 80;
-			char              tmp[MAX_LINE_LEN + 1];
-			int               len;
-			std::string       outstring = mOut.str();
-            const char      * pos = outstring.c_str();
-			for ( size_t i = 0; i < mOut.str().size() + 1; i += MAX_LINE_LEN )
-			{
-				len = mOut.str().size() - i;
-				if ( len >= MAX_LINE_LEN )
-				{
-					len = MAX_LINE_LEN;
-				}
-				memcpy(tmp, pos, len);
-				tmp[len] = 0;
-				message("%s", tmp);
-				pos += len;
-			}
-		}
+    virtual ~CodeGenerator()
+    {
+        static const int MAX_LINE_LEN = 80;
+        char tmp[MAX_LINE_LEN + 1];
+        int len;
+        std::string outstring = mOut.str();
+        const char *pos = outstring.c_str();
+        for (size_t i = 0; i < mOut.str().size() + 1; i += MAX_LINE_LEN)
+        {
+            len = mOut.str().size() - i;
+            if (len >= MAX_LINE_LEN)
+            {
+                len = MAX_LINE_LEN;
+            }
+            memcpy(tmp, pos, len);
+            tmp[len] = 0;
+            message("%s", tmp);
+            pos += len;
+        }
+    }
 
-		//
-		// Implementation of InstructionVisitor interface follows
-		//
-		
-		virtual void Visit(Assignment& instruction)
-		{
-			Prefix(instruction);
-			if (!instruction.First()->IsType(Expression::DUMMY))
-			{
-				instruction.First()->GenerateCode(mOut);
-				mOut << " = ";
-			}
-			instruction.Second()->GenerateCode(mOut);
-			mOut << ';' << std::endl;
-		}
+    //
+    // Implementation of InstructionVisitor interface follows
+    //
 
-		virtual void Visit(Case& instruction)
-		{
-			Prefix(instruction);
-			mOut << "case " << instruction.Value() << ':' << std::endl;
-		}
+    virtual void Visit(Assignment &instruction)
+    {
+        Prefix(instruction);
+        if (!instruction.First()->IsType(Expression::DUMMY))
+        {
+            instruction.First()->GenerateCode(mOut);
+            mOut << " = ";
+        }
+        instruction.Second()->GenerateCode(mOut);
+        mOut << ';' << std::endl;
+    }
 
-		virtual void Visit(ConditionalJump& instruction)
-		{
-			Prefix(instruction);
-			mOut << "if (";
-			instruction.First()->GenerateCode(mOut);
-			mOut << ") goto ";
-			instruction.Second()->GenerateCode(mOut);
-			mOut << ';' << std::endl;
-		}
+    virtual void Visit(Case &instruction)
+    {
+        Prefix(instruction);
+        mOut << "case " << instruction.Value() << ':' << std::endl;
+    }
 
-		virtual void Visit(Jump& instruction)
-		{
-			Prefix(instruction);
-			mOut << "goto ";
-			instruction.Operand()->GenerateCode(mOut);
-			mOut << ';' << std::endl;
-		}
+    virtual void Visit(ConditionalJump &instruction)
+    {
+        Prefix(instruction);
+        mOut << "if (";
+        instruction.First()->GenerateCode(mOut);
+        mOut << ") goto ";
+        instruction.Second()->GenerateCode(mOut);
+        mOut << ';' << std::endl;
+    }
 
-		virtual void Visit(Label& instruction)
-		{
-			Prefix(instruction, NO_INDENT);
-			mOut << instruction.Name() << ':' << std::endl;
-		}
+    virtual void Visit(Jump &instruction)
+    {
+        Prefix(instruction);
+        mOut << "goto ";
+        instruction.Operand()->GenerateCode(mOut);
+        mOut << ';' << std::endl;
+    }
 
-		virtual void Visit(LowLevel& instruction)
-		{
-			Prefix(instruction);
-			
-			//mOut << "/* Low-level instruction of type " 
-			//	<< instruction.Insn().itype
-			//	<< " */" << std::endl;
-				
-			mOut << "/* Low-level instruction of type ";
-			instruction.GenerateCode(mOut);
-			mOut << " */" << std::endl;
-		}
+    virtual void Visit(Label &instruction)
+    {
+        Prefix(instruction, NO_INDENT);
+        mOut << instruction.Name() << ':' << std::endl;
+    }
 
-		virtual void Visit(Push& instruction)
-		{
-			Prefix(instruction);
-			mOut << "/* push ";
-			instruction.Operand()->GenerateCode(mOut);
-			mOut << " */" << std::endl;
-		}
+    virtual void Visit(LowLevel &instruction)
+    {
+        Prefix(instruction);
 
-		virtual void Visit(Pop& instruction)
-		{
-			Prefix(instruction);
-			mOut << "/* pop ";
-			instruction.Operand()->GenerateCode(mOut);
-			mOut << " */" << std::endl;
-		}
+        //mOut << "/* Low-level instruction of type "
+        //	<< instruction.Insn().itype
+        //	<< " */" << std::endl;
 
-		virtual void Visit(Return& instruction)
-		{
-			Prefix(instruction);
-			mOut << "return ";
-			instruction.Operand()->GenerateCode(mOut);
-			mOut << ';' << std::endl;
-		}
+        mOut << "/* Low-level instruction of type ";
+        instruction.GenerateCode(mOut);
+        mOut << " */" << std::endl;
+    }
 
-		virtual void Visit(Switch& instruction)
-		{
-			Prefix(instruction);
-			mOut << "switch (";
-			instruction.Operand()->GenerateCode(mOut);
-			mOut << ')' << std::endl;
-		}
+    virtual void Visit(Push &instruction)
+    {
+        Prefix(instruction);
+        mOut << "/* push ";
+        instruction.Operand()->GenerateCode(mOut);
+        mOut << " */" << std::endl;
+    }
 
-		virtual void Visit(DoWhile& instruction)
-		{
-			Prefix(instruction);
-			mOut << "do" <<std::endl << "{" << std::endl;
+    virtual void Visit(Pop &instruction)
+    {
+        Prefix(instruction);
+        mOut << "/* pop ";
+        instruction.Operand()->GenerateCode(mOut);
+        mOut << " */" << std::endl;
+    }
 
-            Accept(instruction.Statements(), *this);
-            
-			//FIXME put loop statements here.
-			mOut << "} while(";
-			instruction.Operand()->GenerateCode(mOut);
-			mOut << ");" << std::endl;
-		}
+    virtual void Visit(Return &instruction)
+    {
+        Prefix(instruction);
+        mOut << "return ";
+        instruction.Operand()->GenerateCode(mOut);
+        mOut << ';' << std::endl;
+    }
 
-		virtual void Visit(While& instruction)
-		{
-			if(instruction.Statements().empty())
-			{
-				msg("Warning! empty while loop.\n");
-				return;
-			}
-			Prefix(instruction);
+    virtual void Visit(Switch &instruction)
+    {
+        Prefix(instruction);
+        mOut << "switch (";
+        instruction.Operand()->GenerateCode(mOut);
+        mOut << ')' << std::endl;
+    }
 
-			mOut << "while(";
-			instruction.Operand()->GenerateCode(mOut);
-			mOut << ')' << std::endl << "{" << std::endl;
+    virtual void Visit(DoWhile &instruction)
+    {
+        Prefix(instruction);
+        mOut << "do" << std::endl << "{" << std::endl;
 
-            Accept(instruction.Statements(), *this);
+        Accept(instruction.Statements(), *this);
 
-			mOut << "}" << std::endl;
+        //FIXME put loop statements here.
+        mOut << "} while(";
+        instruction.Operand()->GenerateCode(mOut);
+        mOut << ");" << std::endl;
+    }
 
-		}
+    virtual void Visit(While &instruction)
+    {
+        if (instruction.Statements().empty())
+        {
+            msg("Warning! empty while loop.\n");
+            return;
+        }
+        Prefix(instruction);
 
-		virtual void Visit(If& instruction)
-		{
-			Prefix(instruction);
+        mOut << "while(";
+        instruction.Operand()->GenerateCode(mOut);
+        mOut << ')' << std::endl << "{" << std::endl;
 
-			mOut << "if(";
-			instruction.Operand()->GenerateCode(mOut);
-			mOut << ')' << std::endl << "{" << std::endl;
+        Accept(instruction.Statements(), *this);
 
-			Accept(instruction.trueNode->Instructions(), *this);
+        mOut << "}" << std::endl;
 
-			mOut << "}" << std::endl;
+    }
 
-			if(instruction.falseNode.use_count() > 0)
-			{
-				mOut << "else" << std::endl << "{" <<std::endl;
+    virtual void Visit(If &instruction)
+    {
+        Prefix(instruction);
 
-				Accept(instruction.falseNode->Instructions(), *this);
+        mOut << "if(";
+        instruction.Operand()->GenerateCode(mOut);
+        mOut << ')' << std::endl << "{" << std::endl;
 
-				mOut << "}" << std::endl;
-			}
+        Accept(instruction.trueNode->Instructions(), *this);
 
-		}
+        mOut << "}" << std::endl;
 
-		virtual void Visit(Break& instruction)
-		{
-			Prefix(instruction);
-			mOut << "break;" << std::endl;
-		}
+        if (instruction.falseNode.use_count() > 0)
+        {
+            mOut << "else" << std::endl << "{" << std::endl;
 
-		virtual void Visit(Continue& instruction)
-		{
-			Prefix(instruction);
-			mOut << "continue;" << std::endl;
-		}
+            Accept(instruction.falseNode->Instructions(), *this);
 
-		virtual void Visit(Throw& instruction)
-		{
-			Prefix(instruction);
-			if (instruction.IsRethrow())
-			{
-				mOut << "throw;" << std::endl;
-			}
-			else
-			{
-				mOut << "throw ";
-				instruction.Exception()->GenerateCode(mOut);
-				mOut << "; // " << instruction.DataType() << std::endl;
-			}
-		}
-		virtual void NodeBegin(Node_ptr node)
-		{
-		/*
-			if(node->Type() == Node::NodeType::DO_WHILE)
-			{
-				mOut << "do { at " << std::hex << node->Address() << std::endl;
-				Node_list list = static_cast<DoWhileNode *>(node.get())->mNodes;
+            mOut << "}" << std::endl;
+        }
 
-				Accept(list, *this);
-				mOut << std::endl << "} while(";
-				static_cast<DoWhileNode *>(node.get())->expr->Accept(*this);
-				mOut << ")" << std::endl;
-			}*/
-			mOut << "// ";
-			node->print(mOut);
+    }
 
-		}
-		
-		virtual void NodeEnd()
-		{
-			mOut << std::endl;
-		}
+    virtual void Visit(Break &instruction)
+    {
+        Prefix(instruction);
+        mOut << "break;" << std::endl;
+    }
+
+    virtual void Visit(Continue &instruction)
+    {
+        Prefix(instruction);
+        mOut << "continue;" << std::endl;
+    }
+
+    virtual void Visit(Throw &instruction)
+    {
+        Prefix(instruction);
+        if (instruction.IsRethrow())
+        {
+            mOut << "throw;" << std::endl;
+        }
+        else
+        {
+            mOut << "throw ";
+            instruction.Exception()->GenerateCode(mOut);
+            mOut << "; // " << instruction.DataType() << std::endl;
+        }
+    }
+
+    virtual void NodeBegin(Node_ptr node)
+    {
+        /*
+            if(node->Type() == Node::NodeType::DO_WHILE)
+            {
+                mOut << "do { at " << std::hex << node->Address() << std::endl;
+                Node_list list = static_cast<DoWhileNode *>(node.get())->mNodes;
+
+                Accept(list, *this);
+                mOut << std::endl << "} while(";
+                static_cast<DoWhileNode *>(node.get())->expr->Accept(*this);
+                mOut << ")" << std::endl;
+            }*/
+        mOut << "// ";
+        node->print(mOut);
+
+    }
+
+    virtual void NodeEnd()
+    {
+        mOut << std::endl;
+    }
 
 
-	private:
-		enum Indent
-		{
-			NO_INDENT, INDENT
-		};
+private:
+    enum Indent
+    {
+        NO_INDENT, INDENT
+    };
 
-		void Prefix(Instruction& instruction, Indent indent = INDENT)
-		{
-			if (LISTING_STYLE == mStyle)
-			{
-				mOut << boost::format("%08x ") % instruction.Address();
-			}
+    void Prefix(Instruction &instruction, Indent indent = INDENT)
+    {
+        if (LISTING_STYLE == mStyle)
+        {
+            mOut << boost::format("%08x ") % instruction.Address();
+        }
 
-			if (indent == INDENT)
-				mOut << "  ";
-		}
+        if (indent == INDENT)
+            mOut << "  ";
+    }
 
-	private:
+private:
 
-		CodeStyle mStyle;
-		std::ostringstream mOut;
+    CodeStyle mStyle;
+    std::ostringstream mOut;
 };
 
 /**
  * Generate code for a list of instructions
  */
-void GenerateCode(Instruction_list& instructions, CodeStyle style)
+void GenerateCode(Instruction_list &instructions, CodeStyle style)
 {
-	CodeGenerator code_generator(style);
-	Accept(instructions, code_generator);
+    CodeGenerator code_generator(style);
+    Accept(instructions, code_generator);
 }
 
 /**
  * Generate code for list of nodes
  */
-void GenerateCode(Node_list& nodes, CodeStyle style)
+void GenerateCode(Node_list &nodes, CodeStyle style)
 {
-	CodeGenerator code_generator(style);
-	Accept(nodes, code_generator);
+    CodeGenerator code_generator(style);
+    Accept(nodes, code_generator);
 }
 
 

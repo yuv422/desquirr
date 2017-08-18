@@ -23,156 +23,198 @@
 #include "usedefine.hpp"
 #include "node.hpp"
 #include "idapro.hpp"
-#include "instruction.hpp"
-#include "expression.hpp"
 
 /* Set registers {{{ */
 class SetRegistersVisitor : public ExpressionVisitor
 {
-	public:
-		SetRegistersVisitor(BoolArray& registers)
-			: mRegisters(registers)
-		{
-			// Do not clear registers!
-		}
-		
-		virtual void Visit(Register& expression)
-		{
-			mRegisters.Set( expression.SimpleIndex() );
-		}
+public:
+    SetRegistersVisitor(BoolArray &registers)
+            : mRegisters(registers)
+    {
+        // Do not clear registers!
+    }
 
-		virtual void Visit(BinaryExpression&)  {}
-		virtual void Visit(CallExpression& expression)   {}
- 		virtual void Visit(Dummy&)             {}
-		virtual void Visit(GlobalVariable&)            {}
-		virtual void Visit(NumericLiteral&)    {}
-		virtual void Visit(StackVariable&)     {}
-		virtual void Visit(StringLiteral&)     {}
-		virtual void Visit(TernaryExpression&) {}
-		virtual void Visit(UnaryExpression&)   {}
-	
-	private:
-		BoolArray& mRegisters;
+    virtual void Visit(Register &expression)
+    {
+        mRegisters.Set(expression.SimpleIndex());
+    }
+
+    virtual void Visit(BinaryExpression &)
+    {}
+
+    virtual void Visit(CallExpression &expression)
+    {}
+
+    virtual void Visit(Dummy &)
+    {}
+
+    virtual void Visit(GlobalVariable &)
+    {}
+
+    virtual void Visit(NumericLiteral &)
+    {}
+
+    virtual void Visit(StackVariable &)
+    {}
+
+    virtual void Visit(StringLiteral &)
+    {}
+
+    virtual void Visit(TernaryExpression &)
+    {}
+
+    virtual void Visit(UnaryExpression &)
+    {}
+
+private:
+    BoolArray &mRegisters;
 };
 
-static void SetRegisters(Expression_ptr e, BoolArray& registers)
+static void SetRegisters(Expression_ptr e, BoolArray &registers)
 {
-	SetRegistersVisitor helper(registers);
-	e->AcceptDepthFirst(helper);
+    SetRegistersVisitor helper(registers);
+    e->AcceptDepthFirst(helper);
 }/*}}}*/
 
 class UsesAndDefintionsVisitor : public InstructionVisitor
 {
-	private:
-		void BeginInstruction(Instruction& instruction)
-		{
-			instruction.Definitions().Clear();
-			instruction.Uses().Clear();
-		}
+private:
+    void BeginInstruction(Instruction &instruction)
+    {
+        instruction.Definitions().Clear();
+        instruction.Uses().Clear();
+    }
 
-		void EndInstruction(Instruction& instruction)
-		{
-			// Do not say we use something we define first
-			mCurrentNode->Uses()        |= instruction.Uses() & ~mCurrentNode->Definitions();
-			mCurrentNode->Definitions() |= instruction.Definitions();
-		}
-		
-		void Use(Instruction& instruction, int index)
-		{
-			SetRegisters(instruction.Operand(index), instruction.Uses());
-		}
-		
-		void Define(Instruction& instruction, int index)
-		{
-			SetRegisters(instruction.Operand(index), instruction.Definitions());
-		}
+    void EndInstruction(Instruction &instruction)
+    {
+        // Do not say we use something we define first
+        mCurrentNode->Uses() |= instruction.Uses() & ~mCurrentNode->Definitions();
+        mCurrentNode->Definitions() |= instruction.Definitions();
+    }
 
-		void UseOne(Instruction& instruction)
-		{
-			BeginInstruction(instruction);
-			Use(instruction, 0);
-			EndInstruction(instruction);
-		}
+    void Use(Instruction &instruction, int index)
+    {
+        SetRegisters(instruction.Operand(index), instruction.Uses());
+    }
 
-	public:
-		virtual void Visit(Assignment& instruction)
-		{
-			BeginInstruction(instruction);
-			if (instruction.Operand(0)->IsType(Expression::UNARY_EXPRESSION))
-			{
-				// TODO: verify that the Operand is UnaryExpression("*", Register())
-				// This is an indirect store, so we use the operand, not define it!
-				Use(instruction, 0);
-			}
-			else
-			{
-				Define(instruction, 0);
-			}
+    void Define(Instruction &instruction, int index)
+    {
+        SetRegisters(instruction.Operand(index), instruction.Definitions());
+    }
 
-            if (instruction.Operand(1)->IsType(Expression::CALL)) {
-                if (!static_cast<IdaPro&>(Frontend::Get()).ParametersOnStack()) {
-                    CallExpression* call= static_cast<CallExpression*>(instruction.Operand(1).get());
-                    if (call->ParameterCount()==CallExpression::UNKNOWN_PARAMETER_COUNT)
-                        call->ParameterCount(4);
-                    int i= 0;
-                    while (i < 4 && i < call->ParameterCount()) {
-                        call->AddParameter( Register::Create(i) );
-                        i++;
-                    }
+    void UseOne(Instruction &instruction)
+    {
+        BeginInstruction(instruction);
+        Use(instruction, 0);
+        EndInstruction(instruction);
+    }
+
+public:
+    virtual void Visit(Assignment &instruction)
+    {
+        BeginInstruction(instruction);
+        if (instruction.Operand(0)->IsType(Expression::UNARY_EXPRESSION))
+        {
+            // TODO: verify that the Operand is UnaryExpression("*", Register())
+            // This is an indirect store, so we use the operand, not define it!
+            Use(instruction, 0);
+        }
+        else
+        {
+            Define(instruction, 0);
+        }
+
+        if (instruction.Operand(1)->IsType(Expression::CALL))
+        {
+            if (!static_cast<IdaPro &>(Frontend::Get()).ParametersOnStack())
+            {
+                CallExpression *call = static_cast<CallExpression *>(instruction.Operand(1).get());
+                if (call->ParameterCount() == CallExpression::UNKNOWN_PARAMETER_COUNT)
+                    call->ParameterCount(4);
+                int i = 0;
+                while (i < 4 && i < call->ParameterCount())
+                {
+                    call->AddParameter(Register::Create(i));
+                    i++;
                 }
-                Use(instruction, 1);
-                Define(instruction, 1);
             }
-            else {
-                Use(instruction, 1);
-            }
+            Use(instruction, 1);
+            Define(instruction, 1);
+        }
+        else
+        {
+            Use(instruction, 1);
+        }
 
-			EndInstruction(instruction);
-		}
+        EndInstruction(instruction);
+    }
 
-		virtual void Visit(ConditionalJump& instruction)
-		{
-			BeginInstruction(instruction);
-			Use(instruction, 0);
-			Use(instruction, 1);
-			EndInstruction(instruction);
-		}
+    virtual void Visit(ConditionalJump &instruction)
+    {
+        BeginInstruction(instruction);
+        Use(instruction, 0);
+        Use(instruction, 1);
+        EndInstruction(instruction);
+    }
 
-		virtual void Visit(Pop& instruction)
-		{
-			BeginInstruction(instruction);
-			Define(instruction, 0);
-			EndInstruction(instruction);
-		}
+    virtual void Visit(Pop &instruction)
+    {
+        BeginInstruction(instruction);
+        Define(instruction, 0);
+        EndInstruction(instruction);
+    }
 
-		virtual void Visit(Case& instruction)     {}
-		virtual void Visit(Label& instruction)    {}
-		virtual void Visit(LowLevel& instruction) {}
+    virtual void Visit(Case &instruction)
+    {}
 
-		virtual void Visit(Jump& instruction)   { UseOne(instruction); }
-		virtual void Visit(Push& instruction)   { UseOne(instruction); }
-		virtual void Visit(Return& instruction) { UseOne(instruction); }
-		virtual void Visit(Switch& instruction) { UseOne(instruction); }
-		virtual void Visit(DoWhile& instruction){ UseOne(instruction); }
-		virtual void Visit(While& instruction)  { UseOne(instruction); }
-		virtual void Visit(If& instruction)     { UseOne(instruction); }
-		virtual void Visit(Throw& instruction)  { UseOne(instruction); }
+    virtual void Visit(Label &instruction)
+    {}
 
-		virtual void Visit(Break& instruction) {}
-		virtual void Visit(Continue& instruction) {}
+    virtual void Visit(LowLevel &instruction)
+    {}
 
-		virtual void NodeBegin(Node_ptr node)
-		{
-			mCurrentNode = node;
-		}
+    virtual void Visit(Jump &instruction)
+    { UseOne(instruction); }
 
-	private:
-		Node_ptr mCurrentNode;
+    virtual void Visit(Push &instruction)
+    { UseOne(instruction); }
+
+    virtual void Visit(Return &instruction)
+    { UseOne(instruction); }
+
+    virtual void Visit(Switch &instruction)
+    { UseOne(instruction); }
+
+    virtual void Visit(DoWhile &instruction)
+    { UseOne(instruction); }
+
+    virtual void Visit(While &instruction)
+    { UseOne(instruction); }
+
+    virtual void Visit(If &instruction)
+    { UseOne(instruction); }
+
+    virtual void Visit(Throw &instruction)
+    { UseOne(instruction); }
+
+    virtual void Visit(Break &instruction)
+    {}
+
+    virtual void Visit(Continue &instruction)
+    {}
+
+    virtual void NodeBegin(Node_ptr node)
+    {
+        mCurrentNode = node;
+    }
+
+private:
+    Node_ptr mCurrentNode;
 };
 
-void UpdateUsesAndDefinitions(Node_list& nodes)
+void UpdateUsesAndDefinitions(Node_list &nodes)
 {
-	UsesAndDefintionsVisitor visitor;
-	Accept(nodes, visitor);
+    UsesAndDefintionsVisitor visitor;
+    Accept(nodes, visitor);
 }
 

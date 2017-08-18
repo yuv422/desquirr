@@ -18,14 +18,14 @@
 
 enum RegisterValue
 {
-    REG_AX = R_ax ,
-    REG_CX = R_cx ,
-    REG_DX = R_dx ,
-    REG_BX = R_bx ,
-    REG_SP = R_sp ,
-    REG_BP = R_bp ,
-    REG_SI = R_si ,
-    REG_DI = R_di ,
+    REG_AX = R_ax,
+    REG_CX = R_cx,
+    REG_DX = R_dx,
+    REG_BX = R_bx,
+    REG_SP = R_sp,
+    REG_BP = R_bp,
+    REG_SI = R_si,
+    REG_DI = R_di,
     REG_AL = R_al,
     REG_CL = R_cl,
     REG_DL = R_dl,
@@ -89,18 +89,18 @@ inline int ad32(void)   { return (cmd.auxpref & aux_ad_is_32) != 0; }
 
 enum RegisterValue
 {
-	REG_AX, REG_CX, REG_DX, REG_BX, REG_SP, REG_BP, REG_SI, REG_DI,
-	REG_AL, REG_CL, REG_DL, REG_BL, REG_AH, REG_CH, REG_DH, REG_BH
+    REG_AX, REG_CX, REG_DX, REG_BX, REG_SP, REG_BP, REG_SI, REG_DI,
+    REG_AL, REG_CL, REG_DL, REG_BL, REG_AH, REG_CH, REG_DH, REG_BH
 };
 
 enum StatusFlags
 {
-	FLAG_CF=0,
-	FLAG_PF=2,
-	FLAG_AF=4,
-	FLAG_ZF=6,
-	FLAG_SF=7,
-	FLAG_OF=11
+    FLAG_CF=0,
+    FLAG_PF=2,
+    FLAG_AF=4,
+    FLAG_ZF=6,
+    FLAG_SF=7,
+    FLAG_OF=11
 };
 
 

@@ -45,46 +45,50 @@ typedef std::vector<insn_t> insn_vector;
 
 class LowLevel : public Instruction /*{{{*/
 {
-	public:
-		LowLevel(insn_t insn)
-			: Instruction(LOW_LEVEL, insn.ea),
-				mInsn(insn)
-		{}
+public:
+    LowLevel(insn_t insn)
+            : Instruction(LOW_LEVEL, insn.ea),
+              mInsn(insn)
+    {}
 
-		virtual void Accept(InstructionVisitor& visitor)
-		{
-			visitor.Visit(*this);
-		}
+    virtual void Accept(InstructionVisitor &visitor)
+    {
+        visitor.Visit(*this);
+    }
 
-		insn_t& Insn() { return mInsn; }
-		
-		static bool Insn(Instruction_ptr instruction, insn_t& insn) 
-		{ 
-			if (instruction->IsType(Instruction::LOW_LEVEL))
-			{
-				insn = static_cast<LowLevel*>(instruction.get())->Insn();
-				return true;
-			}
-		
-			return false; 
-		}
-		
-		virtual void GenerateCode(std::ostream& os)
-		{
-		    char buf[1024];
-		    generate_disasm_line(mInsn.ea, buf, 1024, 0);
-		    os << buf;
+    insn_t &Insn()
+    { return mInsn; }
 
-		    return;
-		}
-		
-	private:
-		insn_t mInsn;
-		
+    static bool Insn(Instruction_ptr instruction, insn_t &insn)
+    {
+        if (instruction->IsType(Instruction::LOW_LEVEL))
+        {
+            insn = static_cast<LowLevel *>(instruction.get())->Insn();
+            return true;
+        }
+
+        return false;
+    }
+
+    virtual void GenerateCode(std::ostream &os)
+    {
+        char buf[1024];
+        generate_disasm_line(mInsn.ea, buf, 1024, 0);
+        os << buf;
+
+        return;
+    }
+
+private:
+    insn_t mInsn;
+
 };/*}}}*/
 
 insn_t GetLowLevelInstruction(ea_t address);
+
 bool search_comment(ea_t ea, const char *searchString);
+
 bool comment_get_int(ea_t ea, const char *variable, int *val);
+
 #endif // _IDAINTERNAL_HPP
 

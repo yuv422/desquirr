@@ -28,121 +28,125 @@
 
 class DataFlowAnalysis : public Analysis/*{{{*/
 {
-	public:
-		DataFlowAnalysis(Node_list& nodes)
-			: mNodeList(nodes)
-		{}
-		
-		/**
-		 * Analyze a list of nodes
-		 */
-		void AnalyzeNodeList()/*{{{*/
-		{
-			for (Node_list::iterator n = mNodeList.begin();
-					n != mNodeList.end();
-					n++)
-			{
-				Node(*n);
-				AnalyzeNode();
-			}
-		}/*}}}*/
+public:
+    DataFlowAnalysis(Node_list &nodes)
+            : mNodeList(nodes)
+    {}
 
-		void CollectParameters(CallExpression* call);
-	
-	private:
-		/**
-		 * Analyze an individual node (in mNode)
-		 */
-		void AnalyzeNode()/*{{{*/
-		{
-			AnalyzeInstructionList();
-		}/*}}}*/
+    /**
+     * Analyze a list of nodes
+     */
+    void AnalyzeNodeList()/*{{{*/
+    {
+        for (Node_list::iterator n = mNodeList.begin();
+             n != mNodeList.end();
+             n++)
+        {
+            Node(*n);
+            AnalyzeNode();
+        }
+    }/*}}}*/
 
-		virtual AnalysisResult OnInstruction()/*{{{*/
-		{
+    void CollectParameters(CallExpression *call);
+
+private:
+    /**
+     * Analyze an individual node (in mNode)
+     */
+    void AnalyzeNode()/*{{{*/
+    {
+        AnalyzeInstructionList();
+    }/*}}}*/
+
+    virtual AnalysisResult OnInstruction()/*{{{*/
+    {
 //			message("%p\n", Instr()->Address());
-			
-			if (INSTRUCTION_REMOVED == RemoveUnusedDefinition())
-				return INSTRUCTION_REMOVED; 
 
-			GetFunctionParametersFromStack();
-			return CONTINUE;
-		}/*}}}*/
-		
-		/**
-		 * Handle an ASSIGNMENT instruction
-		 */
-		virtual void OnAssignment(Assignment* assignment);
+        if (INSTRUCTION_REMOVED == RemoveUnusedDefinition())
+            return INSTRUCTION_REMOVED;
 
-		/**
-		 * Handle a PUSH instruction
-		 */
-		virtual void OnPush(Push*)/*{{{*/
-		{
-			Stack().push( Iterator() );
-		}/*}}}*/
+        GetFunctionParametersFromStack();
+        return CONTINUE;
+    }/*}}}*/
 
-		/**
-		 * Handle a POP instruction
-		 */
-		virtual void OnPop(Pop*)/*{{{*/
-		{
-			if (Stack().empty())
-			{
-				message("%p Error! Can't POP from empty stack!\n", 
-						Instr()->Address());
-				return;
-			}		
+    /**
+     * Handle an ASSIGNMENT instruction
+     */
+    virtual void OnAssignment(Assignment *assignment);
 
-			//TryConvertPushPopToAssignment(); //ERIC
+    /**
+     * Handle a PUSH instruction
+     */
+    virtual void OnPush(Push *)/*{{{*/
+    {
+        Stack().push(Iterator());
+    }/*}}}*/
 
-			Stack().pop();
-		}/*}}}*/
+    /**
+     * Handle a POP instruction
+     */
+    virtual void OnPop(Pop *)/*{{{*/
+    {
+        if (Stack().empty())
+        {
+            message("%p Error! Can't POP from empty stack!\n",
+                    Instr()->Address());
+            return;
+        }
 
-		/** 
-		 * Remove unused definitions from instruction
-		 *
-		 * Returns true if the whole instruction was removed!
-		 */		
-		bool RemoveUnusedDefinition();
-		
-		/** Get function parameters */
-		void GetFunctionParametersFromStack();
+        //TryConvertPushPopToAssignment(); //ERIC
 
-		/** Try to convert a push-pop pair to an assignment */
-		void TryConvertPushPopToAssignment();
+        Stack().pop();
+    }/*}}}*/
 
-		/** Find iterator for instruction at a certain address */
-		Instruction_list::iterator FindInstructionAtAddress(
-				Instruction_list::iterator item, Addr address);
+    /**
+     * Remove unused definitions from instruction
+     *
+     * Returns true if the whole instruction was removed!
+     */
+    bool RemoveUnusedDefinition();
 
-		/** Replace uses of a register with the definition of the register */
-		AnalysisResult ReplaceUseWithDefinition(Assignment* assignment);
-		AnalysisResult ReplaceUseWithDefinition2(Assignment* assignment);
-		
-		//AnalysisResult TryIncDec(Assignment* assignment);
+    /** Get function parameters */
+    void GetFunctionParametersFromStack();
 
-		/** Get instruction iterator stack */
-		Instruction_list_iterator_stack& Stack() { return mStack; }
+    /** Try to convert a push-pop pair to an assignment */
+    void TryConvertPushPopToAssignment();
 
-		/** Get node */
-		Node_list& NodeList() { return mNodeList; }
+    /** Find iterator for instruction at a certain address */
+    Instruction_list::iterator FindInstructionAtAddress(
+            Instruction_list::iterator item, Addr address);
 
-		/** Get node */
-		Node_ptr Node() { return mNode; }
+    /** Replace uses of a register with the definition of the register */
+    AnalysisResult ReplaceUseWithDefinition(Assignment *assignment);
 
-		/** Set node */
-		void Node(Node_ptr node)
-		{
-			mNode = node;
-			Instructions(&mNode->Instructions());
-		}
+    AnalysisResult ReplaceUseWithDefinition2(Assignment *assignment);
 
-	private:
-		Node_list& mNodeList;
-		Node_ptr mNode;
-		Instruction_list_iterator_stack mStack;
-	
+    //AnalysisResult TryIncDec(Assignment* assignment);
+
+    /** Get instruction iterator stack */
+    Instruction_list_iterator_stack &Stack()
+    { return mStack; }
+
+    /** Get node */
+    Node_list &NodeList()
+    { return mNodeList; }
+
+    /** Get node */
+    Node_ptr Node()
+    { return mNode; }
+
+    /** Set node */
+    void Node(Node_ptr node)
+    {
+        mNode = node;
+        Instructions(&mNode->Instructions());
+    }
+
+private:
+    Node_list &mNodeList;
+    Node_ptr mNode;
+    Instruction_list_iterator_stack mStack;
+
 };/*}}}*/
 
 #endif // _DATAFLOW_HPP

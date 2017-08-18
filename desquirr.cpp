@@ -24,22 +24,14 @@
 // C++ headers
 
 #include <sstream>
-#include <algorithm>
 #include <stack>
-#include <memory>
 
 // IDA headers
 
 #include <ida.hpp>
 #include <idp.hpp>
-#include <bytes.hpp>
 #include <loader.hpp>
-#include <kernwin.hpp>
-#include <funcs.hpp>
-#include <ua.hpp>
 #include <name.hpp>
-#include <frame.hpp>
-#include <struct.hpp>
 
 // Local headers
 
@@ -49,7 +41,6 @@
 #include "collateexpr.hpp"
 #include "collatenode.hpp"
 #include "dataflow.hpp"
-#include "expression.hpp"
 #include "codegen.hpp"
 #include "usedefine.hpp"
 #include "idapro.hpp"
@@ -58,20 +49,21 @@
 
 // global flag, set to true to enable dumping of node structures
 // after each processing step.
-bool g_bDumpNodeContents= false;
+bool g_bDumpNodeContents = false;
 
-int message(const char *format,...)
+int message(const char *format, ...)
 {
-  va_list va;
-  va_start(va, format);
-  int nbytes = Frontend::Get().vmsg(format, va);
-  va_end(va);
-  return nbytes;
+    va_list va;
+    va_start(va, format);
+    int nbytes = Frontend::Get().vmsg(format, va);
+    va_end(va);
+    return nbytes;
 }
-int message(const std::string& str)
+
+int message(const std::string &str)
 {
-    int nbytes=0;
-    for (size_t i= 0 ; i<str.size() ; i+=1024)
+    int nbytes = 0;
+    for (size_t i = 0; i < str.size(); i += 1024)
         nbytes += message("%s", str.substr(i, 1024).c_str());
     return nbytes;
 }
@@ -80,11 +72,14 @@ static LongSize s_size = UNKNOWN_LONG_SIZE;
 
 void setbits(LongSize size)
 {
-	s_size = size;
+    s_size = size;
 }
 
-bool is16bit() { return IS_16_BIT == s_size; };
-bool is32bit() { return IS_32_BIT == s_size; };
+bool is16bit()
+{ return IS_16_BIT == s_size; };
+
+bool is32bit()
+{ return IS_32_BIT == s_size; };
 
 //--------------------------------------------------------------------------
 // This callback is called for UI notification events
@@ -110,35 +105,35 @@ static void get_user_defined_prefix(ea_t ea,
                                     char *buf,
                                     size_t bufsize)
 {
-  buf[0] = '\0';        // empty prefix by default
+    buf[0] = '\0';        // empty prefix by default
 
-  // We want to display the prefix only the lines which
-  // contain the instruction itself
+    // We want to display the prefix only the lines which
+    // contain the instruction itself
 
-  if ( indent != -1 ) return;           // a directive
-  if ( line[0] == '\0' ) return;        // empty line
-  if ( *line == COLOR_ON ) line += 2;
-  if ( *line == ash.cmnt[0] ) return;   // comment line...
+    if (indent != -1) return;           // a directive
+    if (line[0] == '\0') return;        // empty line
+    if (*line == COLOR_ON) line += 2;
+    if (*line == ash.cmnt[0]) return;   // comment line...
 
-  // We don't want the prefix to be printed again for other lines of the
-  // same instruction/data. For that we remember the line number
-  // and compare it before generating the prefix
+    // We don't want the prefix to be printed again for other lines of the
+    // same instruction/data. For that we remember the line number
+    // and compare it before generating the prefix
 
-  static ea_t old_ea = BADADDR;
-  static int old_lnnum;
-  if ( old_ea == ea && old_lnnum == lnnum ) return;
+    static ea_t old_ea = BADADDR;
+    static int old_lnnum;
+    if (old_ea == ea && old_lnnum == lnnum) return;
 
-  // Let's display the size of the current item as the user-defined prefix
-  ulong our_size = get_item_size(ea);
+    // Let's display the size of the current item as the user-defined prefix
+    ulong our_size = get_item_size(ea);
 
-  // seems to be an instruction line. we don't bother about the width
-  // because it will be padded with spaces by the kernel
+    // seems to be an instruction line. we don't bother about the width
+    // because it will be padded with spaces by the kernel
 
-   qsnprintf(buf, bufsize, " %d", our_size);
+    qsnprintf(buf, bufsize, " %d", our_size);
 
-  // Remember the address and line number we produced the line prefix for:
-  old_ea = ea;
-  old_lnnum = lnnum;
+    // Remember the address and line number we produced the line prefix for:
+    old_ea = ea;
+    old_lnnum = lnnum;
 
 }
 
@@ -165,13 +160,13 @@ static void get_user_defined_prefix(ea_t ea,
 int idaapi init(void)
 {
 //	msg("Current processor: %s\n", inf.procName);
-	
-	if (PLFM_386 != ph.id &&
-			PLFM_ARM != ph.id)
-		return PLUGIN_SKIP;
 
-	
- // if ( inf.filetype == f_ELF ) return PLUGIN_SKIP;
+    if (PLFM_386 != ph.id &&
+        PLFM_ARM != ph.id)
+        return PLUGIN_SKIP;
+
+
+    // if ( inf.filetype == f_ELF ) return PLUGIN_SKIP;
 
 // Please uncomment the following line to see how the notification works
 //  hook_to_notification_point(HT_UI, sample_callback, NULL);
@@ -179,7 +174,7 @@ int idaapi init(void)
 // Please uncomment the following line to see how the user-defined prefix works
 //  set_user_defined_prefix(prefix_width, get_user_defined_prefix);
 
-  return PLUGIN_OK;
+    return PLUGIN_OK;
 }
 
 //--------------------------------------------------------------------------
@@ -193,8 +188,8 @@ int idaapi init(void)
 
 void idaapi term(void)
 {
-  //unhook_from_notification_point(HT_UI, (hook_cb_t*)sample_callback);
-  set_user_defined_prefix(0, NULL);
+    //unhook_from_notification_point(HT_UI, (hook_cb_t*)sample_callback);
+    set_user_defined_prefix(0, NULL);
 }
 
 // arg & 1:  decompile to C code (0) or normally (1)
@@ -204,101 +199,102 @@ void idaapi term(void)
 // arg & 16: no control analysis
 void idaapi run(int arg)
 {
-	msg("Running The Desquirr decompiler plugin arg=%d\n", arg);
-	
-	IdaPro* idapro;
-	
-	if (PLFM_386 == ph.id)
-		idapro = new IdaX86();
-	else if (PLFM_ARM == ph.id)
-		idapro = new IdaArm();
-	else
-	{
-		msg("Unexpected processor module\n");
-		return;
-	}
-	
-	Frontend_ptr frontend(idapro);
-	Frontend::Set(frontend);
+    msg("Running The Desquirr decompiler plugin arg=%d\n", arg);
 
-	if (arg & 4)
-	{
-		idapro->DumpInsn(get_screen_ea());
-		return;
-	}
-	CodeStyle style = (arg & 1) ? LISTING_STYLE : C_STYLE;
-	
-	for (func_t *function= (arg&8)?get_next_func(0) : get_func(get_screen_ea()) ; function ; function= (arg&8)?get_next_func(function->startEA):0)
-	{
-		if (function->flags & FUNC_LIB)
-			msg("Warning: Library function\n");
-		
-		Instruction_list instructions;
+    IdaPro *idapro;
 
-		msg("-> Creating instruction list\n");
-		idapro->FillList(function, instructions);
+    if (PLFM_386 == ph.id)
+        idapro = new IdaX86();
+    else if (PLFM_ARM == ph.id)
+        idapro = new IdaArm();
+    else
+    {
+        msg("Unexpected processor module\n");
+        return;
+    }
 
-		if (arg & 2)
-		{
-			msg("Instruction list:\n");
-			GenerateCode(instructions, style);
-			break;
-		}
+    Frontend_ptr frontend(idapro);
+    Frontend::Set(frontend);
 
-		Node_list nodes;
-		msg("-> Creating node list\n");
-		Node::CreateList(instructions, nodes);
+    if (arg & 4)
+    {
+        idapro->DumpInsn(get_screen_ea());
+        return;
+    }
+    CodeStyle style = (arg & 1) ? LISTING_STYLE : C_STYLE;
+
+    for (func_t *function = (arg & 8) ? get_next_func(0) : get_func(get_screen_ea()); function; function = (arg & 8)
+                                                                                                           ? get_next_func(
+                    function->startEA) : 0)
+    {
+        if (function->flags & FUNC_LIB)
+            msg("Warning: Library function\n");
+
+        Instruction_list instructions;
+
+        msg("-> Creating instruction list\n");
+        idapro->FillList(function, instructions);
+
+        if (arg & 2)
+        {
+            msg("Instruction list:\n");
+            GenerateCode(instructions, style);
+            break;
+        }
+
+        Node_list nodes;
+        msg("-> Creating node list\n");
+        Node::CreateList(instructions, nodes);
         //if (g_bDumpNodeContents) DumpList(nodes);
-		msg("-> Update uses and definitions\n");
-		UpdateUsesAndDefinitions(nodes);
+        msg("-> Update uses and definitions\n");
+        UpdateUsesAndDefinitions(nodes);
         //if (g_bDumpNodeContents) DumpList(nodes);
-		msg("-> Live register analysis\n");
-		Node::LiveRegisterAnalysis(nodes);
+        msg("-> Live register analysis\n");
+        Node::LiveRegisterAnalysis(nodes);
         //if (g_bDumpNodeContents) DumpList(nodes);
-		msg("-> Finding DU chains\n");
-		Node::FindDefintionUseChains(nodes);
+        msg("-> Finding DU chains\n");
+        Node::FindDefintionUseChains(nodes);
         if (g_bDumpNodeContents) DumpList(nodes);
-		try
-		{
-		msg("-> Data flow analysis\n");
-		{
-			DataFlowAnalysis analysis(nodes);
-			analysis.AnalyzeNodeList();
-			// want destructor to run here :-)
-		}
-        if (g_bDumpNodeContents) DumpList(nodes);
+        try
+        {
+            msg("-> Data flow analysis\n");
+            {
+                DataFlowAnalysis analysis(nodes);
+                analysis.AnalyzeNodeList();
+                // want destructor to run here :-)
+            }
+            if (g_bDumpNodeContents) DumpList(nodes);
 
-		if(!(arg & 16))
-		{
-			msg("-> Control flow analysis\n");
-			ControlFlowAnalysis controlFlow(nodes);
-			controlFlow.FindDominators(nodes);
+            if (!(arg & 16))
+            {
+                msg("-> Control flow analysis\n");
+                ControlFlowAnalysis controlFlow(nodes);
+                controlFlow.FindDominators(nodes);
 
-			CollateExpr collateExpr(nodes);
-			CollateNode collateNode(nodes);
+                CollateExpr collateExpr(nodes);
+                CollateNode collateNode(nodes);
 
-			for(int i=1;i != 0;)
-			{
-				i = collateExpr.Run();
-				controlFlow.FindDominators(nodes);
-				i += collateNode.Run();
-				controlFlow.FindDominators(nodes);
-			}
+                for (int i = 1; i != 0;)
+                {
+                    i = collateExpr.Run();
+                    controlFlow.FindDominators(nodes);
+                    i += collateNode.Run();
+                    controlFlow.FindDominators(nodes);
+                }
 
-			controlFlow.FindLoops();
-			controlFlow.StructureLoops();
-		}
+                controlFlow.FindLoops();
+                controlFlow.StructureLoops();
+            }
 
 
+            msg("Basic block list:\n");
+            GenerateCode(nodes, style);
+        }
+        catch (...)
+        {
+        }
 
-		msg("Basic block list:\n");
-		GenerateCode(nodes, style);
-		}
-		catch(...)
-		{
-		}
-
-	}
+    }
 }
 
 //--------------------------------------------------------------------------
@@ -331,102 +327,111 @@ char wanted_hotkey[] = "Ctrl-F10";
 //extern "C" plugin_t PLUGIN;
 
 plugin_t PLUGIN = {
-  IDP_INTERFACE_VERSION,
+        IDP_INTERFACE_VERSION,
 #if 0
-  0,                    // plugin flags
+        0,                    // plugin flags
 #else
-	PLUGIN_UNL, // for debugging
+        PLUGIN_UNL, // for debugging
 #endif
-  init,                 // initialize
+        init,                 // initialize
 
-  term,                 // terminate. this pointer may be NULL.
+        term,                 // terminate. this pointer may be NULL.
 
-  run,                  // invoke plugin
+        run,                  // invoke plugin
 
-  comment,              // long comment about the plugin
-                        // it could appear in the status line
-                        // or as a hint
+        comment,              // long comment about the plugin
+        // it could appear in the status line
+        // or as a hint
 
-  help,                 // multiline help about the plugin
+        help,                 // multiline help about the plugin
 
-  wanted_name,          // the preferred short name of the plugin
-  wanted_hotkey         // the preferred hotkey to run the plugin
+        wanted_name,          // the preferred short name of the plugin
+        wanted_hotkey         // the preferred hotkey to run the plugin
 };
 
 // .... dump helpers
-struct DumpInsnHelper {
-    DumpInsnHelper(std::ostream& os)
-        : os(os) 
+struct DumpInsnHelper
+{
+    DumpInsnHelper(std::ostream &os)
+            : os(os)
     {}
-    void operator() (Instruction_ptr item)
+
+    void operator()(Instruction_ptr item)
     {
         os << *item.get();
     }
-    std::ostream& os;
+
+    std::ostream &os;
 };
 
-std::ostream& printlist(std::ostream& os, Instruction_list& list)
+std::ostream &printlist(std::ostream &os, Instruction_list &list)
 {
     for_each(list.begin(), list.end(), DumpInsnHelper(os));
 
     return os;
 }
 
-void DumpList(Instruction_list& list)
+void DumpList(Instruction_list &list)
 {
     std::ostringstream strstr;
     printlist(strstr, list);
     message(strstr.str());
 }
 
-struct DumpNodeHelper {
-    DumpNodeHelper(std::ostream& os)
-        : os(os) 
+struct DumpNodeHelper
+{
+    DumpNodeHelper(std::ostream &os)
+            : os(os)
     {}
-    void operator() (Node_ptr item)
+
+    void operator()(Node_ptr item)
     {
         os << *item.get();
     }
-    std::ostream& os;
+
+    std::ostream &os;
 };
 
-std::ostream& printlist(std::ostream& os, Node_list& list)
+std::ostream &printlist(std::ostream &os, Node_list &list)
 {
     for_each(list.begin(), list.end(), DumpNodeHelper(os));
 
     return os;
 }
 
-void DumpList(Node_list& list)
+void DumpList(Node_list &list)
 {
     std::ostringstream strstr;
     printlist(strstr, list);
     message(strstr.str());
 }
 
-struct DumpExprHelper {
-    DumpExprHelper(std::ostream& os)
-        : os(os), first(true)
+struct DumpExprHelper
+{
+    DumpExprHelper(std::ostream &os)
+            : os(os), first(true)
     {}
-    void operator() (Expression_ptr item)
+
+    void operator()(Expression_ptr item)
     {
         if (!first)
             os << ", ";
         os << *item.get();
-        first= false;
+        first = false;
     }
-    std::ostream& os;
+
+    std::ostream &os;
     bool first;
 };
 
-std::ostream& printvector(std::ostream& os, Expression_vector& list)
+std::ostream &printvector(std::ostream &os, Expression_vector &list)
 {
     for_each(list.begin(), list.end(), DumpExprHelper(os));
 
     return os;
 }
 
-void DumpVector(Expression_vector& list)
+void DumpVector(Expression_vector &list)
 {
     std::ostringstream strstr;
     printvector(strstr, list);
