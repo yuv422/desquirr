@@ -242,6 +242,9 @@ public:
     virtual void Visit(StringLiteral &)
     {}
 
+    virtual void Visit(StructOffset &)
+    {}
+
     virtual void Visit(TernaryExpression &)
     {}
 
@@ -395,9 +398,6 @@ Analysis::AnalysisResult DataFlowAnalysis::ReplaceUseWithDefinition(/*{{{*/
 
     if (du_chain.size() != 1)
         return CONTINUE;
-
-    if (assignment->Address() == 0x2a511)
-        msg(".");
 
     unsigned short reg = du_chain.begin()->first;
     message("%p du_chain.count(%i) = %i\n", assignment->Address(), reg, du_chain.count(reg));
@@ -597,9 +597,6 @@ void DataFlowAnalysis::OnAssignment(Assignment *assignment)/*{{{*/
         message("%p Assign to self\n", Instr()->Address());
     }
 #endif
-
-    if (assignment->Address() == 0x2272e)
-        msg("get to stack manip op");
 
     //ReplaceUseWithDefinition2(assignment);
     ReplaceUseWithDefinition(assignment);

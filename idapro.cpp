@@ -24,27 +24,6 @@
 #include "idapro.hpp"
 #include "analysis.hpp"
 
-#if IDP_INTERFACE_VERSION < 76
-// backward compatibility with ida480
-size_t get_member_name(tid_t mid, char *buf, size_t bufsize)
-{
-    char *name= get_member_name(mid);
-    if (name) {
-        qstrncpy(buf, name, bufsize);
-        return strlen(buf);
-    }
-    return -1;
-}
-#endif
-
-#if IDP_INTERFACE_VERSION < 75
-// backward compatibility with ida470
-bool get_ti(ea_t ea, type_t *buf, size_t bufsize, p_list *fnames, size_t fnsize)
-{
-    return get_ti(ea, buf, fnames);
-}
-#endif
-
 std::string get_struct_path(struc_t *struc, int offset, int *pIndex)
 {
     member_t *member = NULL;  /* must live here, not inside while */

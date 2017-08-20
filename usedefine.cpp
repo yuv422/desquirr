@@ -60,6 +60,9 @@ public:
     virtual void Visit(StringLiteral &)
     {}
 
+    virtual void Visit(StructOffset &)
+    {}
+
     virtual void Visit(TernaryExpression &)
     {}
 

@@ -24,30 +24,6 @@
 #include "ida-x86.hpp"
 #include "analysis.hpp"
 
-#if IDP_INTERFACE_VERSION < 76
-// backward compatibility
-ssize_t get_switch_info(ea_t ea, switch_info_t *buf, size_t bufsize)
-{
-    switch_info_t *si= get_switch_info(ea);
-    if (si) {
-        memcpy(buf, si, bufsize);
-        return bufsize;
-    }
-    return -1;
-}
-#endif
-// 70 = ida4.70, 75 = ida4.80
-#if IDP_INTERFACE_VERSION < 75
-int get_func_bits(func_t *function)
-{
-    if (is_32bit_func(function))
-        return 32;
-    else
-        return 16;
-}
-#endif
-
-
 Expression_ptr RegTimesValue(unsigned short reg, unsigned long value)/*{{{*/
 {
     switch (value)
@@ -192,6 +168,7 @@ static Expression_ptr FromOperand(insn_t &insn, int operand/*,
     Expression_ptr result;
 
     flags_t flags = ::getFlags(insn.ea);
+    op_t op = insn.Operands[operand];
     if (::isStkvar(flags, operand))
     {
         result = CreateStackVariable(insn, operand);
@@ -204,10 +181,18 @@ static Expression_ptr FromOperand(insn_t &insn, int operand/*,
     {
         msg("%p TODO: handle enum!!\n", insn.ea);
     }
+    else if (::isStroff(flags, operand) && op.type == o_displ)
+    {
+        tid_t path[10];
+        adiff_t adiff;
+        msg("path_len = %d, offb=%d\n", get_stroff_path(insn.ea, operand, path, &adiff), op.addr);
+        tid_t memberId = get_member(get_struc(path[0]), op.addr)->id;
+
+        msg("%p TODO: handle struct offset!! '%s'\n", insn.ea, get_member_name2(memberId).c_str());
+    }
 
     if (!result.get())
     {
-        op_t op = insn.Operands[operand];
         refinfo_t refinfo;
 
 #if 0
@@ -415,13 +400,33 @@ static Expression_ptr FromOperand(insn_t &insn, int operand/*,
                             break;
                         }
                     }
+
                     if (gotname)
                     {
-                        result.reset(new BinaryExpression(
-                                result,
-                                "+",
-                                Expression_ptr(new GlobalVariable(buf.c_str())))
-                        );
+                        if (::isStroff(flags, operand) && op.type == o_displ)
+                        {
+                            tid_t path[10];
+                            adiff_t adiff;
+                            msg("path_len = %d, offb=%d\n", get_stroff_path(insn.ea, operand, path, &adiff), op.addr);
+                            tid_t memberId = get_member(get_struc(path[0]), op.addr)->id;
+
+                            msg("%p struct offset!! '%s'\n", insn.ea, get_member_name2(memberId).c_str());
+
+                            result.reset(new StructOffset(result, get_member_name2(memberId).c_str()));
+//                            result.reset(new BinaryExpression(
+//                                    result,
+//                                    "+",
+//                                    Expression_ptr(new StructOffset(get_member_name2(memberId).c_str()))) //new GlobalVariable(get_member_name2(memberId).c_str())))
+//                            );
+                        }
+                        else
+                        {
+                            result.reset(new BinaryExpression(
+                                    result,
+                                    "+",
+                                    Expression_ptr(new GlobalVariable(buf.c_str())))
+                            );
+                        }
                     }
                     else
                     {
@@ -909,8 +914,6 @@ protected:
                 // fall through
 
             case NN_les: msg("les at %a\n", insn.ea);
-                if (insn.ea == 0x1FB40)
-                    msg(".");
             case NN_lea: //ERIC
 //					msg("mov/movzx/lea: ");
 //					DumpInsn(insn);

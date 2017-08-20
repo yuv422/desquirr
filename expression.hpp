@@ -203,6 +203,8 @@ class StackVariable;
 
 class StringLiteral;
 
+class StructOffset;
+
 class TernaryExpression;
 
 class UnaryExpression;
@@ -331,6 +333,8 @@ public:
 
     virtual void Visit(StringLiteral &)     = 0;
 
+    virtual void Visit(StructOffset &)      = 0;
+
     virtual void Visit(TernaryExpression &) = 0;
 
     virtual void Visit(UnaryExpression &)   = 0;
@@ -353,6 +357,7 @@ public:
         REGISTER,
         STACK_VARIABLE,
         STRING_LITERAL,
+        STRUCT_OFFSET,
         TERNARY_EXPRESSION,
         UNARY_EXPRESSION
     };
@@ -1038,6 +1043,47 @@ private:
     unsigned long mStringType;
 };/*}}}*/
 
+class StructOffset : public Expression/*{{{*/
+{
+public:
+    StructOffset(Expression_ptr first, const std::string &value)
+            : Expression(STRUCT_OFFSET), mFirst(first), mValue(value)
+    {
+        //DataType().MakeCharPointer();
+    }
+
+    virtual Expression_ptr Copy()
+    {
+        return Expression_ptr(new StructOffset(mFirst, mValue));
+    }
+
+    virtual void print(std::ostream &os)
+    {
+        os << boost::format("STRUCTOFFSET:%s")
+              % mValue;
+    }
+
+    virtual void Accept(ExpressionVisitor &visitor)
+    {
+        visitor.Visit(*this);
+    }
+
+    virtual void GenerateCode(std::ostream &os)
+    {
+        mFirst->GenerateCode(os);
+        os << "->" << mValue;
+    }
+
+    virtual int Precedence() const
+    {
+        return precedencemap.atomprecedence();
+    }
+
+private:
+    Expression_ptr mFirst;
+    std::string mValue;
+};/*}}}*/
+
 class Register : public Expression/*{{{*/
 {
 public:
@@ -1304,6 +1350,9 @@ public:
     {}
 
     virtual void Visit(StringLiteral &)
+    {}
+
+    virtual void Visit(StructOffset &)
     {}
 
     virtual void Visit(TernaryExpression &)
