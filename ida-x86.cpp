@@ -830,8 +830,6 @@ protected:
             case NN_cmp: EraseInstructions(1);
                 mFlagUpdate = insn;
                 mFlagUpdateItem = Instructions().end();
-                if (insn.ea == 0x1fb44)
-                    msg(".");
                 break;
 
             case NN_test: OnTest(insn);

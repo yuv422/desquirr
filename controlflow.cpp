@@ -974,6 +974,7 @@ int ControlFlowAnalysis::StructureIf(Node_list &blocks, Node_ptr node)
 
         followerNode->Cleanup(true); //cleanup all goto and label instructions.
 
+        //FIXME should be configurable with D:NoReturnValue
         //Add Return ax;
         followerNode->Instructions().push_back(
                 Instruction_ptr(new Return(node->Address(), Expression_ptr(new Register(REG_AX)))));

@@ -1068,6 +1068,16 @@ public:
         visitor.Visit(*this);
     }
 
+    virtual int SubExpressionCount()
+    {
+        return 1;
+    }
+
+    virtual Expression_ptr SubExpression(int index)
+    {
+        return mFirst;
+    }
+
     virtual void GenerateCode(std::ostream &os)
     {
         mFirst->GenerateCode(os);
