@@ -306,6 +306,7 @@ private:
     BoolArray mLiveOut;
 
 
+    static const std::vector<Addr> GetSwitchExpression(Addr address);
 };/*}}}*/
 
 class OneWayNode : public Node/*{{{*/
@@ -458,10 +459,10 @@ private:
     Addr mSuccessorAddress[2];
     Node_ptr mSuccessor[2];
 };/*}}}*/
-#if 0
+
 class N_WayNode : public Node/*{{{*/
 {
-    protected:
+    public:
         N_WayNode(const std::vector<Addr> &successor_list,
                 Instruction_list::iterator begin,
                 Instruction_list::iterator end)
@@ -511,7 +512,6 @@ class N_WayNode : public Node/*{{{*/
         std::vector<Addr> mSuccessorAddress;
         std::vector<Node_ptr> mSuccessor;
 };/*}}}*/
-#endif
 
 class JumpNode : public OneWayNode/*{{{*/
 {

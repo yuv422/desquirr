@@ -727,16 +727,15 @@ protected:
             }
         }
 #endif
-/* ERIC FIXME 
-			switch_info_t si;
-			if (get_switch_info(insn.ea, &si, sizeof(si))>=0)
-			{
-				msg("switch handler get here\n");
-				if (OnSwitchInfo(insn, si))
-					return;
-			}
-			
-*/
+
+        switch_info_ex_t si;
+        if (get_switch_info_ex(insn.ea, &si, sizeof(si)) >= 0)
+        {
+            msg("switch handler get here\n");
+            if (OnSwitchInfo(insn, si))
+                return;
+        }
+
         switch (insn.itype)
         {
 
@@ -2398,7 +2397,7 @@ protected:
         DumpInsn(insn);
     }/*}}}*/
 
-    bool OnSwitchInfo(insn_t &insn, switch_info_t &si)/*{{{*/
+    bool OnSwitchInfo(insn_t &insn, switch_info_ex_t &si)/*{{{*/
     {
         if (NN_jmpni == insn.itype)// &&
             /*	o_mem    == insn.Operands[0].type &&
@@ -2446,7 +2445,7 @@ protected:
             }
 
             Insert(new Switch(
-                    si.startea,
+                    insn.ea,
                     Register::Create(REG_AX)/*,
 							si*/));
 

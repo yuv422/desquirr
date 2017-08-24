@@ -589,14 +589,14 @@ void ControlFlowAnalysis::StructureDoWhileLoop(Loop *loop)
     msg("Do while loop\n");
     Instruction_ptr expr;
 
-    Node_list::iterator n = loop->nodes.end();
-
-    n--;
-    for (; (*n)->Type() != Node::CONDITIONAL_JUMP;)
-    {
-        msg("dowhile searching for header. skipping %s at %a\n", (*n)->TypeString(), (*n)->Address());
-        n--;
-    }
+//    Node_list::iterator n = loop->nodes.end();
+//
+//    n--;
+//    for (; (*n)->Type() != Node::CONDITIONAL_JUMP;)
+//    {
+//        msg("dowhile searching for header. skipping %s at %a\n", (*n)->TypeString(), (*n)->Address());
+//        n--;
+//    }
 
 //		n--;  //FIXME big hack! dropping last fall through node.
 //				msg("dowhile exprNode = %a %s\n", (*n)->Address(), (*n)->TypeString());
@@ -605,7 +605,7 @@ void ControlFlowAnalysis::StructureDoWhileLoop(Loop *loop)
     //expr = (*n)->Instructions().back(); //do while
     expr = loop->tail->Instructions().back();
 
-    msg("dowhile exprNode = %a %s, insn = %a\n", (*n)->Address(), (*n)->TypeString(), expr->Address());
+    msg("dowhile insn = %a\n",  expr->Address());
     //test
     Expression_ptr ep(expr->Operand(0));
     if (loop->tail->Successor(0) != loop->header) //if the jump exits the loop then negate the expression.

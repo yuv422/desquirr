@@ -22,6 +22,7 @@
 // $Id: node.cpp,v 1.4 2005/10/15 23:56:03 wjhengeveld Exp $
 
 #include <stack>
+#include "idainternal.hpp"
 
 #include "node.hpp"
 
@@ -82,13 +83,13 @@ void Node::CreateList(Instruction_list &instructions, Node_list &nodes)/*{{{*/
                 begin = cur;
                 break;
 */
-/*
-			case Instruction::SWITCH:
+
+            case Instruction::SWITCH:
                 cur++;
-                node.reset( new N_WayNode(GetSwitchExpression(), begin, cur) );
+                node.reset( new N_WayNode(GetSwitchExpression(instruction->Address()), begin, cur) );
                 begin = cur;
                 break;
-*/
+
             default: cur++;
                 break;
         }
@@ -370,5 +371,19 @@ void Node::LiveRegisterAnalysis(Node_list &nodes)
         }
 
     } while (changed);
-}/*}}}*/
+}
+
+const std::vector<Addr> Node::GetSwitchExpression(Addr address)
+{
+    std::vector<Addr> successors;
+    xrefblk_t xr;
+    bool ok = xr.first_from(address, XREF_ALL);
+
+    for(;ok;ok = xr.next_from()) {
+        successors.push_back((Addr)xr.to);
+    }
+
+    return successors;
+}
+/*}}}*/
 
