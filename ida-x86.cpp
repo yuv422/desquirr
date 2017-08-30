@@ -1402,6 +1402,56 @@ protected:
         return false;
     }/*}}}*/
 
+    bool TryLowByteAssign1(insn_t &insn)/*{{{*/
+    {
+        /*
+        mov al, value
+        ->
+        mov ax, value & 0xff
+        */
+
+        insn_vector idiom;
+        if (!GetInstructions(1, idiom))
+            return false;
+
+        if (NN_mov == idiom[0].itype &&
+            o_reg == idiom[0].Operands[0].type)
+        {
+            RegisterValue newReg;
+
+            switch (idiom[0].Operands[0].reg)
+            {
+                case R_al :
+                    newReg = REG_AX;
+                    break;
+                case R_bl :
+                    newReg = REG_BX;
+                    break;
+                case R_cl :
+                    newReg = REG_CX;
+                    break;
+                case R_dl :
+                    newReg = REG_DX;
+                    break;
+                default : return false;
+            }
+
+            Insert(new Assignment(
+                    insn.ea,
+                    Register::Create(newReg),
+                    Expression_ptr(new BinaryExpression(
+                            Expression_ptr(new BinaryExpression(Register::Create(newReg), "&", Expression_ptr(new NumericLiteral(0xff00)))),
+                            "|",
+                            FromOperand(idiom[0], 1)))
+            ));
+
+            EraseInstructions(1);
+            return true;
+        }
+
+        return false;
+    }/*}}}*/
+
     bool TryXorCmpSet(insn_t &insn)/*{{{*/
     {
         /*
@@ -2259,6 +2309,9 @@ protected:
         if (TryHighByteAssign(insn)) //TryLowByteAssign(insn))
             return;
 
+        if (TryLowByteAssign1(insn))
+            return;
+
         if (UNKNOWN_SIGN == signness)
         {
             Replace(new Assignment(
@@ -2397,6 +2450,50 @@ protected:
         DumpInsn(insn);
     }/*}}}*/
 
+    std::vector<std::string> ExtractCases(boost::shared_ptr<Instruction> &shared_ptr)
+    {
+        std::vector<std::string> cases;
+        char cmt[1024];
+
+        if (get_cmt((*shared_ptr).Address(), true, cmt, sizeof(cmt)-1) == -1)
+            return cases;
+
+        std::string str(cmt);
+        str = str + "\n";
+
+        if (str.find("default case", 0) != std::string::npos)
+        {
+            cases.push_back("default");
+        }
+        else
+        {
+            size_t pos = str.find(" case ", 0);
+            if (pos != std::string::npos)
+            {
+                pos += 6; //" case "
+                size_t end = str.find_first_not_of("1234567890", pos);
+                if (end != std::string::npos)
+                {
+                    cases.push_back(str.substr(pos, end-pos));
+                }
+            }
+            else
+            {
+                size_t pos = str.find(" cases ", 0);
+                if (pos != std::string::npos)
+                {
+                    pos += 7; //" cases "
+                    size_t end = str.find_first_not_of("1234567890,-", pos);
+                    if (end != std::string::npos)
+                    {
+                        cases.push_back(str.substr(pos, end-pos)); //fixme need to break this apart.
+                    }
+                }
+            }
+        }
+        return cases;
+    }
+
     bool OnSwitchInfo(insn_t &insn, switch_info_ex_t &si)/*{{{*/
     {
         if (NN_jmpni == insn.itype)// &&
@@ -2428,11 +2525,12 @@ protected:
                 if ((**item).Address() == address &&
                     (**item).IsType(Instruction::LABEL))
                 {
+                    std::vector<std::string> cases = ExtractCases(*item);
                     msg("%p case %i statement here\n", address, i);
                     Erase(item);
 
                     Instructions().insert(item,
-                                          Instruction_ptr(new Case(address, i)));
+                                          Instruction_ptr(new Case(address, cases)));
 
                     if (++i == si.ncases)
                         break;

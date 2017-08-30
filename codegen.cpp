@@ -76,7 +76,13 @@ public:
     virtual void Visit(Case &instruction)
     {
         Prefix(instruction);
-        mOut << "case " << instruction.Value() << ':' << std::endl;
+        for (std::vector<std::string>::iterator it = instruction.Values().begin() ; it != instruction.Values().end(); it++) {
+            if(*it == "default") {
+                mOut << "default :" << std::endl;
+            } else {
+                mOut << "case " << *it << ':' << std::endl;
+            }
+        }
     }
 
     virtual void Visit(ConditionalJump &instruction)

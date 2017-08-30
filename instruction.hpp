@@ -41,6 +41,7 @@ Instruction   ... ea
         Assignment        ... dest=first, src=second
  */
 #include <sstream>
+#include <vector>
 #include "desquirr.hpp"
 
 #include "pro.h"
@@ -886,23 +887,23 @@ private:
 class Case : public Instruction/*{{{*/
 {
 public:
-    Case(Addr ea, unsigned int value)
-            : Instruction(CASE, ea), mValue(value)
+    Case(Addr ea, std::vector<std::string> &values)
+            : Instruction(CASE, ea), mValues(values)
     {}
 
     virtual Instruction_ptr Copy()
     {
-        return Instruction_ptr(new Case(Address(), Value()));
+        return Instruction_ptr(new Case(Address(), Values()));
     }
 
     virtual void print(std::ostream &os)
     {
         Instruction::print(os);
-        os << boost::format("CASE %08lx\n") % Value();
+        os << "CASE FIXME addValueHere"; //FIXME boost::format("CASE %08lx\n") % Values();
     }
 
-    unsigned int Value()
-    { return mValue; }
+    std::vector<std::string> &Values()
+    { return mValues; }
 
     virtual void Accept(InstructionVisitor &visitor)
     {
@@ -910,7 +911,7 @@ public:
     }
 
 private:
-    unsigned int mValue;
+    std::vector<std::string> mValues;
 };/*}}}*/
 
 class DoWhile : public UnaryInstruction/*{{{*/

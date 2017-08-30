@@ -29,7 +29,7 @@
 //defined in idapro.cpp
 extern bool search_comment(ea_t ea, const char *searchString);
 
-// this finds consequetive sequences of instructions.
+// this finds consecutive sequences of instructions.
 void Node::CreateList(Instruction_list &instructions, Node_list &nodes)/*{{{*/
 {
     Instruction_list::iterator cur = instructions.begin();

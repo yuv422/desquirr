@@ -507,6 +507,21 @@ class N_WayNode : public Node/*{{{*/
             }
         }
 
+        virtual bool ReconnectSuccessor(Node_ptr old_successor, Node_ptr new_successor)
+        {
+            bool matched = false;
+            for(int i=0; i < SuccessorCount(); i++)
+            {
+                if (old_successor == mSuccessor[i])
+                {
+                    mSuccessor[i] = new_successor;
+                    mSuccessorAddress[i] = new_successor->Address();
+                    matched = true;
+                }
+            }
+
+            return matched;
+        }
 
     private:
         std::vector<Addr> mSuccessorAddress;
