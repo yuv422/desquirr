@@ -163,7 +163,10 @@ public:
 
         //FIXME put loop statements here.
         mOut << "} while(";
-        instruction.Operand()->GenerateCode(mOut);
+        if(instruction.Operand().use_count() > 0)
+            instruction.Operand()->GenerateCode(mOut);
+        else
+            mOut << "ERROR MISSING OPERAND"; //FIXME firx the cause
         mOut << ");" << std::endl;
     }
 

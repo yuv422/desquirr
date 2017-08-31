@@ -64,6 +64,8 @@ public:
 
     void StructureLoops();
 
+    void StructureSwitches(Node_list &blocks);
+
 private:
     /**
      * Analyze an individual node (in mNode)

@@ -284,6 +284,7 @@ void idaapi run(int arg)
 
                 controlFlow.FindLoops();
                 controlFlow.StructureLoops();
+                controlFlow.StructureSwitches(nodes);
             }
 
 

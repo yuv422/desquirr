@@ -423,7 +423,7 @@ void ControlFlowAnalysis::StructureLoops()
         {
             for (int i = 0; i < loop->header->SuccessorCount(); i++)
             {
-                if (loop->header->Successor(i)->Address() == loop->breakNode->Address() ||
+                if (loop->breakNode.use_count() > 0 && loop->header->Successor(i)->Address() == loop->breakNode->Address() ||
                     !loop->header->DominatesNode(loop->header->Successor(i)))
                 {
                     loopType = Instruction::WHILE;
@@ -1064,5 +1064,24 @@ int ControlFlowAnalysis::StructureIf(Node_list &blocks, Node_ptr node)
 
 
     return 0;
+}
+
+void ControlFlowAnalysis::StructureSwitches(Node_list &blocks)
+{
+    FindDominators(blocks);
+
+    for (Node_list::iterator n = blocks.begin();
+         n != blocks.end();
+         n++)
+    {
+        Node_ptr node = *n;
+        if(node->Type() == Node::N_WAY && node->Instructions().back()->Type() == Instruction::SWITCH) {
+            Node_ptr successor = find_imm_post_dominator(blocks, blocks, node);
+            if(successor.use_count() > 0)
+            {
+                msg("switch imm post dominator %a", successor->Address());
+            }
+        }
+    }
 }
 
