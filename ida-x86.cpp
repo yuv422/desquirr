@@ -1879,6 +1879,15 @@ protected:
         return false;
     }/*}}}*/
 
+    DataType get_data_type_from_tinfo(tinfo_t tinfo)
+    {
+        if (tinfo.is_void())
+            return VOID;
+
+        //FIXME handle more types here.
+        return INT16;
+    }
+
     void OnCall(insn_t &insn)/*{{{*/
     {
         Expression_ptr e;
@@ -1945,7 +1954,7 @@ protected:
         type.get_func_details(&func_type_data);
 
         call->CallingConvention(func_type_data.get_cc());
-
+        call->ReturnType(get_data_type_from_tinfo(type.get_rettype()));
 
         if (call->IsCdecl())
         {
@@ -2058,9 +2067,9 @@ protected:
         }
 
         Expression_ptr result;
-/*			if (call->DataType().IsVoid())
-				result.reset(new Dummy());
-			else*/
+        if (call->ReturnType() == VOID)
+            result.reset(new Dummy());
+        else
         {
             // TODO: handle return in DX:AX and only AL too
             result.reset(new Register(REG_AX));

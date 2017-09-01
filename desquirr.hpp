@@ -83,6 +83,17 @@ enum Signness
     SIGNED_INT
 };
 
+enum DataType
+{
+    VOID,
+    INT8,
+    INT16,
+    INT32,
+    SINT8,
+    SINT16,
+    SINT32
+};
+
 enum
 {
     INVALID_ADDR = 0xffffffff

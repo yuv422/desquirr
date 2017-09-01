@@ -868,6 +868,16 @@ public:
         }
     }
 
+    void ReturnType(DataType dt)
+    {
+        returnType = dt;
+    }
+
+    DataType ReturnType()
+    {
+        return returnType;
+    }
+
     /** special overloaded version */
     virtual void AcceptDepthFirst(ExpressionVisitor &visitor)
     {
@@ -915,6 +925,7 @@ private:
     /* CALLING_CDECL etc, from TYPEINF.HPP */
     Calling mCallingConvention;
     bool mFinishedAddingParameters;
+    DataType returnType;
 
     void LoadTypeInformation();
 
@@ -1076,6 +1087,14 @@ public:
     virtual Expression_ptr SubExpression(int index)
     {
         return mFirst;
+    }
+
+    virtual void SubExpression(int index, Expression_ptr e)
+    {
+        if (index == 0)
+        {
+            mFirst = e;
+        }
     }
 
     virtual void GenerateCode(std::ostream &os)
