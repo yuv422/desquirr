@@ -614,6 +614,7 @@ public:
 
     void AnalyzeFunction(func_t *function, Instruction_list &instructions)/*{{{*/
     {
+        SetReturnType(function);
         Instructions(&instructions);
         MakeLowLevelList(function);
 
@@ -625,12 +626,25 @@ public:
     }/*}}}*/
 
 protected:
+
     enum
     {
         SAVE_INSN,
         SAVE_INSN_AND_ITERATOR,
     } FlagSave;
 
+    void SetReturnType(func_t *pFunc)
+    {
+        tinfo_t type;
+        if (!get_tinfo2(pFunc->startEA, &type))
+        {
+            message("No type information for function at %p!\n",
+                    pFunc->startEA);
+            functionReturnType = INT16;
+            return;
+        }
+        functionReturnType = get_data_type_from_tinfo(type.get_rettype());
+    }
 
     // this creates a list of LowLevel(insn_t)
     // and Label(address, labelname) objects.
@@ -659,6 +673,21 @@ protected:
                 }
                 else
                 {
+                    if (address == function->startEA)
+                    {
+                        qstring func_name;
+                        tinfo_t type;
+                        if (!get_tinfo2(address, &type))
+                        {
+                            message("No type information for function at %p!\n",
+                                    address);
+                        }
+                        else
+                        {
+                            type.print(&func_name, name.c_str());
+                            name = func_name.c_str();
+                        }
+                    }
                     //msg("%p Name=%s\n", address, name.c_str());
                     Instruction_ptr label(new Label(address, name.c_str()));
                     Instructions().push_back(label);
@@ -939,7 +968,7 @@ protected:
 
             case NN_retn:
             case NN_retf:
-                if (search_comment(insn.ea, "D:NoReturnValue") == true)
+                if (search_comment(insn.ea, "D:NoReturnValue") == true || functionReturnType == VOID)
                     Replace(
                             new Return(insn.ea, Expression_ptr(new Dummy()))
                     );
@@ -2581,6 +2610,7 @@ protected:
 
     insn_t mFlagUpdate;
     Instruction_list::iterator mFlagUpdateItem;
+    DataType functionReturnType;
 
 };/*}}}*/
 
