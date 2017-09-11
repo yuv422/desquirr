@@ -859,7 +859,7 @@ int ControlFlowAnalysis::StructureIfElse(Node_list &blocks, Node_ptr node)
     trueNode->Cleanup(true); //cleanup all goto and label instructions.
     falseNode->Cleanup(true); //cleanup all goto and label instructions.
 
-    If *ifInstruction = new If(expr->Address(), ep);
+    iff *ifInstruction = new iff(expr->Address(), ep);
     ifInstruction->trueNode = trueNode;
     ifInstruction->falseNode = falseNode;
 
@@ -923,7 +923,7 @@ int ControlFlowAnalysis::StructureIf(Node_list &blocks, Node_ptr node)
 
         jumpNode->Cleanup(true); //cleanup all goto and label instructions.
 
-        If *ifInstruction = new If(expr->Address(), ep);
+        iff *ifInstruction = new iff(expr->Address(), ep);
         ifInstruction->trueNode = jumpNode;
 
         node->Instructions().insert(
@@ -979,7 +979,7 @@ int ControlFlowAnalysis::StructureIf(Node_list &blocks, Node_ptr node)
         followerNode->Instructions().push_back(
                 Instruction_ptr(new Return(node->Address(), Expression_ptr(new Register(REG_AX)))));
 
-        If *ifInstruction = new If(expr->Address(), ep);
+        iff *ifInstruction = new iff(expr->Address(), ep);
         ifInstruction->trueNode = followerNode;
 
         node->Instructions().insert(
@@ -1026,7 +1026,7 @@ int ControlFlowAnalysis::StructureIf(Node_list &blocks, Node_ptr node)
 
         ExpressionNegationHelper negExpr;
         negExpr.negateExpression(ep);
-        If *ifInstruction = new If(expr->Address(), ep);
+        iff *ifInstruction = new iff(expr->Address(), ep);
         ifInstruction->trueNode = followerNode;
 
         node->Instructions().insert(

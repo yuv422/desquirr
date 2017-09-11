@@ -189,7 +189,7 @@ public:
 
     }
 
-    virtual void Visit(If &instruction)
+    virtual void Visit(iff &instruction)
     {
         Prefix(instruction);
 

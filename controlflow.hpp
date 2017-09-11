@@ -199,7 +199,7 @@ private:
             Instruction_ptr ip(new Break(insn->Address()));
             np->Instructions().push_back(ip);
 
-            If *ifInstruction = new If(insn->Address(), ifExpr);
+            iff *ifInstruction = new iff(insn->Address(), ifExpr);
             ifInstruction->trueNode = np;
 
             Instructions().insert(Iterator(), Instruction_ptr(ifInstruction));

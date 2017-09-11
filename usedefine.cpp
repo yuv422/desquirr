@@ -194,7 +194,7 @@ public:
     virtual void Visit(While &instruction)
     { UseOne(instruction); }
 
-    virtual void Visit(If &instruction)
+    virtual void Visit(iff &instruction)
     { UseOne(instruction); }
 
     virtual void Visit(Throw &instruction)
