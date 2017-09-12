@@ -15,7 +15,7 @@ O13=collatenode
 O14=controlflow
 include ../plugin.mak
 
-CFLAGS+=-I/Users/efry/Apps/Build/boost_1_64_0 -DBOOST_NO_TYPEID
+CFLAGS+=-I. -Inodes -I/Users/efry/Apps/Build/boost_1_64_0 -DBOOST_NO_TYPEID
 ADDITIONAL_LIBS+=-L/Users/efry/Apps/Build/boost_1_64_0/stage/lib -lboost_system
 
 # MAKEDEP dependency list ------------------

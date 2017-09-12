@@ -37,7 +37,8 @@ set(SOURCE_FILES
         node.hpp
         usedefine.cpp
         usedefine.hpp
-        x86.hpp)
+        x86.hpp
+        nodes/NodeVisitor.hpp)
 
 add_definitions(-D__MAC__=1)
 include_directories(.)

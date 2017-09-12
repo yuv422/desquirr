@@ -58,7 +58,7 @@ public:
         }
     }/*}}}*/
 
-    void FindDominators(Node_list &blocks);
+    static void FindDominators(Node_list &blocks);
 
     void FindLoops();
 

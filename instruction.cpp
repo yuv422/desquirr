@@ -36,6 +36,7 @@
 //
 #include "instruction.hpp"
 #include "analysis.hpp"
+#include "controlflow.hpp"
 
 /**
  * Apply InstructionVisitor on a list of nodes
@@ -63,6 +64,36 @@ void Accept(Instruction_list &instructions, InstructionVisitor &visitor)/*{{{*/
     {
         (**i).Accept(visitor);
     }
+}/*}}}*/
+
+/**
+ * Apply NodeVisitor on a list of nodes
+ */
+void AcceptNodeVisitor(Node_list &nodes, NodeVisitor &visitor)/*{{{*/
+{
+    ControlFlowAnalysis::FindDominators(nodes);
+    for (Node_list::iterator i = nodes.begin();
+         i != nodes.end();
+         i++)
+    {
+        AcceptNodeVisitor(*i, visitor);
+        visitor.visit(*i);
+    }
+    Node::RemoveDeletedNodes(nodes);
+}/*}}}*/
+
+/**
+ * Apply visitor on a node and its list of instructions
+ */
+void AcceptNodeVisitor(Node_ptr node, NodeVisitor &visitor)/*{{{*/
+{
+    for (Instruction_list::iterator i = node->Instructions().begin();
+         i != node->Instructions().end();
+         i++)
+    {
+        (**i).Accept(visitor);
+    }
+    visitor.visit(node);
 }/*}}}*/
 
 const int BoolArray::POWER_OF_2[BoolArray::SIZE] =/*{{{*/

@@ -42,6 +42,7 @@ Instruction   ... ea
  */
 #include <sstream>
 #include <vector>
+#include <nodes/NodeVisitor.hpp>
 #include "desquirr.hpp"
 
 #include "pro.h"
@@ -261,6 +262,9 @@ void Accept(Node_list &nodes, InstructionVisitor &visitor);
 
 void Accept(Instruction_list &instructions, InstructionVisitor &visitor);
 
+void AcceptNodeVisitor(Node_list &nodes, NodeVisitor &visitor);
+
+void AcceptNodeVisitor(Node_ptr node, NodeVisitor &visitor);
 
 /**
  * an instruction
@@ -347,6 +351,8 @@ public:
     }
 
     virtual void Accept(InstructionVisitor &visitor) = 0;
+
+    virtual void Accept(NodeVisitor &visitor) {}
 
     /**
      * Return true if the whole instruction can be removed
@@ -941,6 +947,11 @@ public:
         visitor.Visit(*this);
     }
 
+    virtual void Accept(NodeVisitor &visitor)
+    {
+        AcceptNodeVisitor(*mStatements, visitor);
+    }
+
     virtual OperandTypeValue OperandType(int index)
     {
         return USE;
@@ -989,6 +1000,11 @@ public:
         visitor.Visit(*this);
     }
 
+    virtual void Accept(NodeVisitor &visitor)
+    {
+        AcceptNodeVisitor(*mStatements, visitor);
+    }
+
     virtual OperandTypeValue OperandType(int index)
     {
         return USE;
@@ -1031,6 +1047,14 @@ public:
     virtual void Accept(InstructionVisitor &visitor)
     {
         visitor.Visit(*this);
+    }
+
+    virtual void Accept(NodeVisitor &visitor)
+    {
+        if(trueNode.use_count() > 0)
+            AcceptNodeVisitor(trueNode, visitor);
+        if(falseNode.use_count() > 0)
+            AcceptNodeVisitor(falseNode, visitor);
     }
 
     virtual OperandTypeValue OperandType(int index)
