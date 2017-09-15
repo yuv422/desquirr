@@ -39,14 +39,13 @@
 #include "instruction.hpp"
 #include "node.hpp"
 #include "controlflow.hpp"
-#include "collateexpr.hpp"
-#include "collatenode.hpp"
 #include "dataflow.hpp"
 #include "codegen.hpp"
 #include "usedefine.hpp"
 #include "idapro.hpp"
 #include "ida-x86.hpp"
 #include "ida-arm.hpp"
+#include "CollateExprNodeVisitor.hpp"
 
 // global flag, set to true to enable dumping of node structures
 // after each processing step.
@@ -272,15 +271,15 @@ void idaapi run(int arg)
                 ControlFlowAnalysis controlFlow(nodes);
                 controlFlow.FindDominators(nodes);
 
-                CollateExpr collateExpr(nodes);
-                CollateNode collateNode(nodes);
                 CollateNodeVisitor collateNodeVisitor;
+                CollateExprNodeVisitor collateExprNodeVisitor;
 
                 for (int i = 1; i != 0;)
                 {
-                    i = collateExpr.Run();
-                    controlFlow.FindDominators(nodes);
-                    //i += collateNode.Run();
+                    AcceptNodeVisitor(nodes, collateExprNodeVisitor);
+                    i = collateExprNodeVisitor.didWork() ? 1 : 0;
+                    collateExprNodeVisitor.reset();
+
                     AcceptNodeVisitor(nodes, collateNodeVisitor);
                     if (collateNodeVisitor.didWork())
                     {

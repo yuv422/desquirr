@@ -27,8 +27,7 @@
 #include "idainternal.hpp"
 #include "controlflow.hpp"
 #include "ida-x86.hpp"
-#include "collatenode.hpp"
-#include "collateexpr.hpp"
+#include "CollateExprNodeVisitor.hpp"
 
 //work goes here. ;-)
 
@@ -792,8 +791,10 @@ void ControlFlowAnalysis::StructureIfs(Node_list &blocks)
     {
         i = 0;
         msg("performing if analysis pass..\n");
-        CollateExpr collateExpr(blocks);
-        i += collateExpr.Run();
+
+        CollateExprNodeVisitor collateExprNodeVisitor;
+        AcceptNodeVisitor(blocks, collateExprNodeVisitor);
+        i = collateExprNodeVisitor.didWork() ? 1 : 0;
 
         FindDominators(blocks);
 
@@ -818,19 +819,12 @@ void ControlFlowAnalysis::StructureIfs(Node_list &blocks)
 
         FindDominators(blocks);
 
-//        CollateNode collateNode(blocks);
-//        i += collateNode.Run();
         CollateNodeVisitor collateNodeVisitor;
         AcceptNodeVisitor(blocks, collateNodeVisitor);
         if (collateNodeVisitor.didWork())
             i++;
 
         FindDominators(blocks);
-
-        //CollateExpr collateExpr(blocks);
-        //i += collateExpr.Run();
-
-        //FindDominators(blocks);
 
     } while (i > 0);
 

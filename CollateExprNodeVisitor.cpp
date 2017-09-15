@@ -8,6 +8,9 @@
 
 bool CollateExprNodeVisitor::visit(Node_ptr node) {
 
+    if (didWorkFlag)
+        return false;
+
     if (node->Type() == Node::CONDITIONAL_JUMP && node->Successor(1)->Type() == Node::CONDITIONAL_JUMP
         && node->Successor(0) == node->Successor(1)->Successor(0) //both nodes target the same jump
         //&& node->DominatesNode(node->Successor(1)) //node1 dominates it's follower node
@@ -32,6 +35,8 @@ bool CollateExprNodeVisitor::visit(Node_ptr node) {
 
         Expression_ptr newExpr(new BinaryExpression(expr1, "||", expr2));
         static_cast<BinaryInstruction *>(node_insn.get())->Operand(0, newExpr);
+
+        didWorkFlag = true;
         return true;
     }
     else if (node->Type() == Node::CONDITIONAL_JUMP && node->Successor(1)->Type() == Node::JUMP &&
@@ -72,6 +77,7 @@ bool CollateExprNodeVisitor::visit(Node_ptr node) {
         static_cast<BinaryInstruction *>(node_insn.get())->Operand(0, newExpr);
         static_cast<BinaryInstruction *>(node_insn.get())->Operand(1, new_loc);
 
+        didWorkFlag = true;
         return true;
     }
     else if (node->Type() == Node::CONDITIONAL_JUMP && node->Successor(1)->Type() == Node::CONDITIONAL_JUMP
@@ -107,6 +113,7 @@ bool CollateExprNodeVisitor::visit(Node_ptr node) {
         static_cast<BinaryInstruction *>(node_insn.get())->Operand(0, newExpr);
         static_cast<BinaryInstruction *>(node_insn.get())->Operand(1, new_loc);
 
+        didWorkFlag = true;
         return true;
     }
     else if (node->Type() == Node::CONDITIONAL_JUMP && node->Successor(0)->Type() == Node::CONDITIONAL_JUMP
@@ -142,6 +149,7 @@ bool CollateExprNodeVisitor::visit(Node_ptr node) {
         static_cast<BinaryInstruction *>(node_insn.get())->Operand(0, newExpr);
         static_cast<BinaryInstruction *>(node_insn.get())->Operand(1, new_loc);
 
+        didWorkFlag = true;
         return true;
     }
     else if (node->Type() == Node::CONDITIONAL_JUMP && node->Successor(0)->Type() == Node::CONDITIONAL_JUMP
@@ -170,6 +178,7 @@ bool CollateExprNodeVisitor::visit(Node_ptr node) {
         static_cast<BinaryInstruction *>(node_insn.get())->Operand(0, newExpr);
         static_cast<BinaryInstruction *>(node_insn.get())->Operand(1, new_loc);
 
+        didWorkFlag = true;
         return true;
     }
     return false;

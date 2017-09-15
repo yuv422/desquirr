@@ -10,10 +10,9 @@ O8=function
 O9=frontend
 O10=ida-arm
 O11=ida-x86
-O12=collateexpr
-O13=CollateExprNodeVisitor
-O14=CollateNodeVisitor
-O15=controlflow
+O12=CollateExprNodeVisitor
+O13=CollateNodeVisitor
+O14=controlflow
 include ../plugin.mak
 
 CFLAGS+=-I. -Inodes -I/Users/efry/Apps/Build/boost_1_64_0 -DBOOST_NO_TYPEID
@@ -31,7 +30,6 @@ $(F)function$(O) : function.cpp
 $(F)frontend$(O) : frontend.cpp 
 $(F)ida-arm$(O) : ida-arm.cpp 
 $(F)ida-x86$(O) : ida-x86.cpp 
-$(F)collateexpr$(O) : collateexpr.cpp 
 $(F)CollateExprNodeVisitor$(O) : CollateExprNodeVisitor.cpp
 $(F)CollateNodeVisitor$(O) : CollateNodeVisitor.cpp
 $(F)controlflow$(O) : controlflow.cpp
