@@ -32,6 +32,7 @@
 #include <idp.hpp>
 #include <loader.hpp>
 #include <name.hpp>
+#include <CollateNodeVisitor.hpp>
 
 // Local headers
 
@@ -273,12 +274,19 @@ void idaapi run(int arg)
 
                 CollateExpr collateExpr(nodes);
                 CollateNode collateNode(nodes);
+                CollateNodeVisitor collateNodeVisitor;
 
                 for (int i = 1; i != 0;)
                 {
                     i = collateExpr.Run();
                     controlFlow.FindDominators(nodes);
-                    i += collateNode.Run();
+                    //i += collateNode.Run();
+                    AcceptNodeVisitor(nodes, collateNodeVisitor);
+                    if (collateNodeVisitor.didWork())
+                    {
+                        collateNodeVisitor.reset();
+                        i++;
+                    }
                     controlFlow.FindDominators(nodes);
                 }
 

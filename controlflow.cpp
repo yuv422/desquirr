@@ -22,6 +22,7 @@
 // $Id$
 #include <boost/dynamic_bitset.hpp>
 #include <stack>
+#include <CollateNodeVisitor.hpp>
 
 #include "idainternal.hpp"
 #include "controlflow.hpp"
@@ -817,8 +818,12 @@ void ControlFlowAnalysis::StructureIfs(Node_list &blocks)
 
         FindDominators(blocks);
 
-        CollateNode collateNode(blocks);
-        i += collateNode.Run();
+//        CollateNode collateNode(blocks);
+//        i += collateNode.Run();
+        CollateNodeVisitor collateNodeVisitor;
+        AcceptNodeVisitor(blocks, collateNodeVisitor);
+        if (collateNodeVisitor.didWork())
+            i++;
 
         FindDominators(blocks);
 

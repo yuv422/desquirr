@@ -10,7 +10,16 @@
 class NodeVisitor
 {
 public:
+    NodeVisitor() {
+        didWorkFlag = false;
+    }
+    bool didWork() { return didWorkFlag; }
+    void reset() { didWorkFlag = false; }
+
     virtual bool visit(Node_ptr node) = 0;
+
+protected:
+    bool didWorkFlag;
 };
 
 

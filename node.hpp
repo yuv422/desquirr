@@ -81,6 +81,11 @@ public:
     Addr Address() const
     { return mAddress; }
 
+    void Address(Addr address)
+    {
+        mAddress = address;
+    }
+
     NodeType Type() const
     { return mType; }
 
@@ -140,7 +145,7 @@ public:
 
     int PredecessorCount()
     {
-        return mPreds.size();
+        return (int)mPreds.size();
     }
 
     virtual Addr SuccessorAddress(int index)
@@ -191,6 +196,11 @@ public:
             return true;
 
         return false;
+    }
+
+    bool IsMarkedForDeletion()
+    {
+        return Type()==TO_BE_DELETED;
     }
 
     friend std::ostream &operator<<(std::ostream &os, Node &n)

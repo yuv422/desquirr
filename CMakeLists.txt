@@ -38,7 +38,7 @@ set(SOURCE_FILES
         usedefine.cpp
         usedefine.hpp
         x86.hpp
-        nodes/NodeVisitor.hpp)
+        nodes/NodeVisitor.hpp CollateNodeVisitor.cpp CollateNodeVisitor.hpp CollateExprNodeVisitor.cpp CollateExprNodeVisitor.hpp)
 
 add_definitions(-D__MAC__=1)
 include_directories(.)

@@ -77,7 +77,8 @@ void AcceptNodeVisitor(Node_list &nodes, NodeVisitor &visitor)/*{{{*/
          i++)
     {
         AcceptNodeVisitor(*i, visitor);
-        visitor.visit(*i);
+        if (!(*i)->IsMarkedForDeletion())
+            visitor.visit(*i);
     }
     Node::RemoveDeletedNodes(nodes);
 }/*}}}*/
@@ -93,7 +94,8 @@ void AcceptNodeVisitor(Node_ptr node, NodeVisitor &visitor)/*{{{*/
     {
         (**i).Accept(visitor);
     }
-    visitor.visit(node);
+    if (!node->IsMarkedForDeletion())
+        visitor.visit(node);
 }/*}}}*/
 
 const int BoolArray::POWER_OF_2[BoolArray::SIZE] =/*{{{*/
