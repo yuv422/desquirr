@@ -295,6 +295,11 @@ public:
         return n->mDominators.test(domId);
     }
 
+    bool PostDominatesNode(Node_ptr n)
+    {
+        return n->mPostDominators.test((unsigned long)this->domId);
+    }
+
     void MarkForDeletion()
     {
         mType = TO_BE_DELETED;

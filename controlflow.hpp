@@ -23,9 +23,11 @@
 #ifndef _CONTROLFLOW_HPP
 #define _CONTROLFLOW_HPP
 
+#include <set>
 #include "desquirr.hpp"
 #include "analysis.hpp"
 #include "node.hpp"
+
 
 class Loop
 {
@@ -109,6 +111,7 @@ private:
     Node_ptr mNode;
     std::list<Loop *> mLoops;
 
+    std::set<Node_ptr> findSwitchExitNodes(Node_ptr switchNode, Node_list &blocks);
 };/*}}}*/
 
 

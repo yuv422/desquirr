@@ -23,6 +23,7 @@
 #include <boost/dynamic_bitset.hpp>
 #include <stack>
 #include <CollateNodeVisitor.hpp>
+#include <set>
 
 #include "idainternal.hpp"
 #include "controlflow.hpp"
@@ -1075,13 +1076,14 @@ void ControlFlowAnalysis::StructureSwitches(Node_list &blocks)
     {
         Node_ptr node = *n;
         if(node->Type() == Node::N_WAY && node->Instructions().back()->Type() == Instruction::SWITCH) {
+            std::set<Node_ptr> exitNodes = findSwitchExitNodes(node, blocks);
             for (Node_list::iterator n1 = blocks.begin();
                  n1 != blocks.end();
                  n1++)
             {
                 if (*n1 != *n && node->DominatesNode(*n1))
                 {
-                    Node_ptr dominatedNode = *n;
+                    Node_ptr dominatedNode = *n1;
                     msg("Adding Node %a to switch statement\n", dominatedNode->Address());
                     //disconnect predecessor if it is the switch node.
                     //disconnect successors that aren't dominated by switch node
@@ -1091,5 +1093,38 @@ void ControlFlowAnalysis::StructureSwitches(Node_list &blocks)
             }
         }
     }
+}
+
+std::set<Node_ptr> ControlFlowAnalysis::findSwitchExitNodes(Node_ptr switchNode, Node_list &blocks)
+{
+    std::set<Node_ptr> exitNodes;
+
+    for (Node_list::iterator n = blocks.begin();
+         n != blocks.end();
+         n++)
+    {
+        Node_ptr node = *n;
+        if (node != switchNode && switchNode->DominatesNode(node))
+        {
+            if (node->PostDominatesNode(switchNode))
+            {
+                exitNodes.insert(node);
+                msg("found post dominating exit node for switch %a\n", node->Address());
+                return exitNodes;
+            }
+
+            for (int i = 0; i < node->SuccessorCount(); i++)
+            {
+                Node_ptr successor = node->Successor(i);
+                if (!switchNode->DominatesNode(successor))
+                {
+                    exitNodes.insert(successor);
+                    msg("found exit node for switch %a\n", successor->Address());
+                }
+            }
+        }
+    }
+
+    return exitNodes;
 }
 
