@@ -1075,10 +1075,19 @@ void ControlFlowAnalysis::StructureSwitches(Node_list &blocks)
     {
         Node_ptr node = *n;
         if(node->Type() == Node::N_WAY && node->Instructions().back()->Type() == Instruction::SWITCH) {
-            Node_ptr successor = find_imm_post_dominator(blocks, blocks, node);
-            if(successor.use_count() > 0)
+            for (Node_list::iterator n1 = blocks.begin();
+                 n1 != blocks.end();
+                 n1++)
             {
-                msg("switch imm post dominator %a", successor->Address());
+                if (*n1 != *n && node->DominatesNode(*n1))
+                {
+                    Node_ptr dominatedNode = *n;
+                    msg("Adding Node %a to switch statement\n", dominatedNode->Address());
+                    //disconnect predecessor if it is the switch node.
+                    //disconnect successors that aren't dominated by switch node
+                    //link their preds back to switch node
+
+                }
             }
         }
     }
