@@ -151,7 +151,9 @@ public:
         Prefix(instruction);
         mOut << "switch (";
         instruction.Operand()->GenerateCode(mOut);
-        mOut << ')' << std::endl;
+        mOut << ')' << std::endl << "{" << std::endl;
+        Accept(instruction.Statements(), *this);
+        mOut << "}" << std::endl;
     }
 
     virtual void Visit(DoWhile &instruction)

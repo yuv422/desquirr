@@ -862,7 +862,9 @@ class Switch : public UnaryInstruction/*{{{*/
 public:
     Switch(Addr ea, Expression_ptr value/*, switch_info_t& si*/)
             : UnaryInstruction(SWITCH, ea, value)//, mSwitchInfo(si)
-    {}
+    {
+        mStatements = new Node_list();
+    }
 
     virtual Instruction_ptr Copy()
     {
@@ -885,7 +887,19 @@ public:
         return USE;
     }
 
+    void AddStatementNode(Node_ptr n)
+    {
+        Node_ptr np(n);
+        mStatements->push_back(np);
+    }
+
+    Node_list &Statements()
+    {
+        return *mStatements;
+    }
+
 private:
+    Node_list *mStatements; //statement nodes
     //switch_info_t mSwitchInfo;
 };/*}}}*/
 
