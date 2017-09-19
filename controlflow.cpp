@@ -1077,18 +1077,19 @@ void ControlFlowAnalysis::StructureSwitches(Node_list &blocks)
         Node_ptr node = *n;
         if(node->Type() == Node::N_WAY && node->Instructions().back()->Type() == Instruction::SWITCH) {
             std::set<Node_ptr> exitNodes = findSwitchExitNodes(node, blocks);
+            if (exitNodes.size() > 1) {
+                msg("WARN: %d exit nodes found in switch case nodes.\n", exitNodes.size());
+                continue;
+            }
             for (Node_list::iterator n1 = blocks.begin();
                  n1 != blocks.end();
-                 n1++)
-            {
-                if (*n1 != *n && node->DominatesNode(*n1))
-                {
+                 n1++) {
+                if (*n1 != *n && node->DominatesNode(*n1)) {
                     Node_ptr dominatedNode = *n1;
                     msg("Adding Node %a to switch statement\n", dominatedNode->Address());
                     //disconnect predecessor if it is the switch node.
                     //disconnect successors that aren't dominated by switch node
                     //link their preds back to switch node
-
                 }
             }
         }
