@@ -37,7 +37,7 @@ Node  ... begin-end
     N_WayNode     ... list! when last=load PC with expression.
 	DoWhileNode
 */
-
+#include <vector>
 #include <boost/dynamic_bitset.hpp>
 
 //
@@ -176,6 +176,23 @@ public:
     void ConnectPredecessor(Node_ptr predecessor)
     {
         mPreds.push_back(predecessor);
+    }
+
+    bool HasPredecessor(Node_ptr predecessor)
+    {
+        return find(mPreds.begin(), mPreds.end(), predecessor) != mPreds.end();
+    }
+
+    bool HasSuccessor(Node_ptr successor)
+    {
+        for (int i=0; i < SuccessorCount(); i++)
+        {
+            if (Successor(i) == successor)
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     virtual void Cleanup(bool cleanAll)
@@ -536,6 +553,21 @@ class N_WayNode : public Node/*{{{*/
             }
 
             return matched;
+        }
+
+        void RemoveSuccessor(Node_ptr successor)
+        {
+            std::vector<Addr>::iterator it = find(mSuccessorAddress.begin(), mSuccessorAddress.end(), successor->Address());
+            if (it != mSuccessorAddress.end())
+            {
+                mSuccessorAddress.erase(it, it);
+            }
+
+            std::vector<Node_ptr>::iterator it1 = find(mSuccessor.begin(), mSuccessor.end(), successor);
+            if (it1 != mSuccessor.end())
+            {
+                mSuccessor.erase(it1, it1);
+            }
         }
 
     private:
