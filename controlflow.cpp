@@ -236,19 +236,11 @@ Loop *ControlFlowAnalysis::FindNaturalLoopForEdge(Node_ptr header, Node_ptr tail
     return loop;
 }
 
-Node_ptr find_node_by_addr(Node_list &list, Addr address)
+Node_ptr find_node(Node_list &list, Node_ptr node)
 {
-    for (Node_list::iterator n = list.begin();
-         n != list.end();
-         n++)
-    {
-        Node_ptr node = *n;
+    Node_list::iterator n = find(list.begin(), list.end(), node);
 
-        if (node->Address() == address)
-            return node;
-    }
-
-    return Node_ptr();
+    return n != list.end() ? *n : Node_ptr();
 }
 
 Node_ptr find_node_by_domId(Node_list &list, int domId)
@@ -309,8 +301,8 @@ Node_ptr find_imm_post_dominator(Node_list &list, Node_list &loop_list, Node_ptr
                 it = find(plist.begin(), plist.end(), ptr);
                 if (it != plist.end())
                 {
-                    Node_ptr test_node = find_node_by_addr(loop_list, ptr->Address());
-                    if (test_node.use_count() <= 0)
+                    it = find(loop_list.begin(), loop_list.end(), ptr);
+                    if (it != loop_list.end())
                     {
                         return ptr;
                     }
@@ -523,7 +515,7 @@ void ControlFlowAnalysis::StructureWhileLoop(Loop *loop)
             continue;
         }
 
-        Node_ptr replace_node = find_node_by_addr(mNodeList, node->Address());
+        Node_ptr replace_node = find_node(mNodeList, node);
         if (replace_node.use_count() > 0)
         {
             msg("replacing node of type %d at %a\n", replace_node->Type(), replace_node->Address());
@@ -607,6 +599,13 @@ void ControlFlowAnalysis::StructureDoWhileLoop(Loop *loop)
     expr = loop->tail->Instructions().back();
 
     msg("dowhile insn = %a\n",  expr->Address());
+
+    if (loop->breakNode.get() == NULL)
+    {
+        msg("ERROR: doWhile loop with no break node! Header at %a", loop->header->Address());
+        return;
+    }
+
     //test
     Expression_ptr ep(expr->Operand(0));
     if (loop->tail->Successor(0) != loop->header) //if the jump exits the loop then negate the expression.
@@ -633,7 +632,7 @@ void ControlFlowAnalysis::StructureDoWhileLoop(Loop *loop)
     //convert the header node into a fallthrough node.
     Node_ptr while_node = Node_ptr(
             new FallThroughNode(loop->breakNode->Address(), tmpInstructions.begin(), tmpInstructions.end()));
-    while_node->ConnectSuccessor(0, find_node_by_addr(mNodeList, loop->breakNode->Address()));//loop->breakNode);
+    while_node->ConnectSuccessor(0, find_node(mNodeList, loop->breakNode));
 
     //loop->header->MarkForDeletion();
 
@@ -659,7 +658,7 @@ void ControlFlowAnalysis::StructureDoWhileLoop(Loop *loop)
 				continue;
 			}
 */
-        Node_ptr replace_node = find_node_by_addr(mNodeList, node->Address());
+        Node_ptr replace_node = find_node(mNodeList, node);
         if (node ==
             loop->header) //if this is the case then we have probable selected the while_node which is wrong. We need the original header node.
             replace_node = loop->header;

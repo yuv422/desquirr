@@ -289,6 +289,8 @@ protected:
         {
             message("Warning! Empty node of type %i created!\n", mType);
         }
+
+        domId = 0xffff;
     }
 
 
@@ -296,6 +298,7 @@ public:
     Node(NodeType type, Addr address)
             : mAddress(address), mType(type)
     {
+        domId = 0xffff;
     }
 
     virtual ~Node()
