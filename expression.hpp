@@ -582,6 +582,11 @@ public:
     const std::string &Operation() const
     { return mOperation; }
 
+    void Operation(std::string operation)
+    {
+        mOperation = operation;
+    }
+
 #if 0
     virtual void DepthFirst(ExpressionVisitor& visitor)
     {
@@ -958,6 +963,11 @@ public:
 
     unsigned long Value()
     { return mValue; }
+
+    bool IsNegative()
+    {
+        return (mValue >= 0xfffffff0);
+    }
 
     virtual void GenerateCode(std::ostream &os)
     {
@@ -1394,5 +1404,64 @@ public:
 
 private:
 }; /*}}}*/
+
+
+// Change "something + -2" to "something - 2"
+class ExpressionAddNegativeNumberHelper : public ExpressionVisitor
+{
+public:
+    virtual void Visit(BinaryExpression &expression) {
+        if (expression.Operation() == "+" && expression.Second()->IsType(Expression::NUMERIC_LITERAL))
+        {
+            NumericLiteral *numericLiteral = static_cast<NumericLiteral *>(expression.Second().get());
+            if (numericLiteral->IsNegative())
+            {
+                expression.Operation("-");
+                expression.Second(Expression_ptr(new NumericLiteral((unsigned long)labs((long)numericLiteral->Value()))));
+            }
+        }
+    }
+
+    virtual void Visit(CallExpression &expression) {
+
+    }
+
+    virtual void Visit(Dummy &dummy) {
+
+    }
+
+    virtual void Visit(GlobalVariable &variable) {
+
+    }
+
+    virtual void Visit(NumericLiteral &literal) {
+
+    }
+
+    virtual void Visit(Register &aRegister) {
+
+    }
+
+    virtual void Visit(StackVariable &variable) {
+
+    }
+
+    virtual void Visit(StringLiteral &literal) {
+
+    }
+
+    virtual void Visit(StructOffset &offset) {
+
+    }
+
+    virtual void Visit(TernaryExpression &expression) {
+
+    }
+
+    virtual void Visit(UnaryExpression &expression) {
+
+    }
+};
+
 #endif
 

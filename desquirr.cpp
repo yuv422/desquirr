@@ -294,7 +294,11 @@ void idaapi run(int arg)
                 controlFlow.StructureSwitches(nodes);
             }
 
-
+            ExpressionVisitor *e = new ExpressionAddNegativeNumberHelper();
+            ExpressionInstructionVisitor *v = new ExpressionInstructionVisitor(*e);
+            Accept(nodes, *v);
+            delete v;
+            delete e;
             msg("Basic block list:\n");
             GenerateCode(nodes, style);
         }

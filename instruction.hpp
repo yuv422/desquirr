@@ -1254,5 +1254,81 @@ public:
     }
 };/*}}}*/
 
+
+class ExpressionInstructionVisitor : public InstructionVisitor
+{
+public:
+    ExpressionInstructionVisitor(ExpressionVisitor &expressionVisitor) : expressionVisitor(expressionVisitor) {}
+
+public:
+    virtual void Visit(Assignment &assignment) {
+        assignment.First()->AcceptDepthFirst(expressionVisitor);
+        assignment.Second()->AcceptDepthFirst(expressionVisitor);
+    }
+
+    virtual void Visit(Case &aCase) {
+
+    }
+
+    virtual void Visit(ConditionalJump &jump) {
+        jump.First()->AcceptDepthFirst(expressionVisitor);
+    }
+
+    virtual void Visit(Jump &jump) {
+        jump.Operand(0)->AcceptDepthFirst(expressionVisitor);
+    }
+
+    virtual void Visit(Label &label) {
+
+    }
+
+    virtual void Visit(LowLevel &level) {
+
+    }
+
+    virtual void Visit(Push &push) {
+        push.Operand(0)->AcceptDepthFirst(expressionVisitor);
+    }
+
+    virtual void Visit(Pop &pop) {
+        pop.Operand(0)->AcceptDepthFirst(expressionVisitor);
+    }
+
+    virtual void Visit(Return &aReturn) {
+        aReturn.Operand(0)->AcceptDepthFirst(expressionVisitor);
+    }
+
+    virtual void Visit(Switch &aSwitch) {
+        aSwitch.Operand(0)->AcceptDepthFirst(expressionVisitor);
+    }
+
+    virtual void Visit(DoWhile &aWhile) {
+        aWhile.Operand(0)->AcceptDepthFirst(expressionVisitor);
+    }
+
+    virtual void Visit(While &aWhile) {
+        aWhile.Operand(0)->AcceptDepthFirst(expressionVisitor);
+    }
+
+    virtual void Visit(If &anIf) {
+        anIf.Operand(0)->AcceptDepthFirst(expressionVisitor);
+    }
+
+    virtual void Visit(Break &aBreak) {
+
+    }
+
+    virtual void Visit(Continue &aContinue) {
+
+    }
+
+    virtual void Visit(Throw &aThrow) {
+
+    }
+
+private:
+    ExpressionVisitor &expressionVisitor;
+};
+
 #endif // _INSTRUCTION_HPP
 
