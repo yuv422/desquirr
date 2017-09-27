@@ -1298,21 +1298,13 @@ public:
         aReturn.Operand(0)->AcceptDepthFirst(expressionVisitor);
     }
 
-    virtual void Visit(Switch &aSwitch) {
-        aSwitch.Operand(0)->AcceptDepthFirst(expressionVisitor);
-    }
+    virtual void Visit(Switch &aSwitch);
 
-    virtual void Visit(DoWhile &aWhile) {
-        aWhile.Operand(0)->AcceptDepthFirst(expressionVisitor);
-    }
+    virtual void Visit(DoWhile &aWhile);
 
-    virtual void Visit(While &aWhile) {
-        aWhile.Operand(0)->AcceptDepthFirst(expressionVisitor);
-    }
+    virtual void Visit(While &aWhile);
 
-    virtual void Visit(If &anIf) {
-        anIf.Operand(0)->AcceptDepthFirst(expressionVisitor);
-    }
+    virtual void Visit(If &anIf);
 
     virtual void Visit(Break &aBreak) {
 

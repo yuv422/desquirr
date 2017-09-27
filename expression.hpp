@@ -755,7 +755,7 @@ public:
 
     virtual int SubExpressionCount()
     {
-        return mSubExpressions.size();
+        return (int)mSubExpressions.size();
     }
 
     virtual Expression_ptr SubExpression(int index)

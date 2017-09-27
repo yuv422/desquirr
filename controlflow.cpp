@@ -61,7 +61,7 @@ void ControlFlowAnalysis::FindDominators(Node_list &blocks)
     {
         Node_ptr node = *n;
 
-        for (int i = 0; i < node->SuccessorCount(); i++)
+        for (i = 0; i < node->SuccessorCount(); i++)
         {
             Node_ptr succ = node->Successor(i);
             succ->ConnectPredecessor(node);
@@ -79,12 +79,12 @@ void ControlFlowAnalysis::FindDominators(Node_list &blocks)
     do
     {
         changed = false;
-        for (Node_list::iterator n = blocks.begin();
-             n != blocks.end();
-             n++)
+        for (Node_list::iterator it = blocks.begin();
+             it != blocks.end();
+             it++)
         {
-            Node_ptr node = *n;
-            if (n == blocks.begin()) //hack need to store entry node.
+            Node_ptr node = *it;
+            if (it == blocks.begin()) //hack need to store entry node.
                 continue;
 
             for (Node_list::iterator p = node->mPreds.begin();
@@ -113,18 +113,18 @@ void ControlFlowAnalysis::FindDominators(Node_list &blocks)
     do
     {
         changed = false;
-        for (Node_list::iterator n = blocks.begin();
-             n != blocks.end();
-             n++)
+        for (Node_list::iterator it = blocks.begin();
+             it != blocks.end();
+             it++)
         {
-            Node_ptr node = *n;
+            Node_ptr node = *it;
             if (node == blocks.back()) //this should be the exit node. FIXME need better way of finding exit block.
                 continue;
 
             t.set();
             //t |= node->mPostDominators;
 
-            for (int i = 0; i < node->SuccessorCount(); i++)
+            for (i = 0; i < node->SuccessorCount(); i++)
             {
                 Node_ptr succ = node->Successor(i);
                 t &= succ->mPostDominators;

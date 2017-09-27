@@ -219,3 +219,25 @@ std::ostream &operator<<(std::ostream &os, const RegisterToAddress_map &vs)
     return os;
 }
 
+void ExpressionInstructionVisitor::Visit(Switch &aSwitch) {
+    aSwitch.Operand(0)->AcceptDepthFirst(expressionVisitor);
+    Accept(aSwitch.Statements(), *this);
+}
+
+void ExpressionInstructionVisitor::Visit(DoWhile &aWhile) {
+    aWhile.Operand(0)->AcceptDepthFirst(expressionVisitor);
+    Accept(aWhile.Statements(), *this);
+}
+
+void ExpressionInstructionVisitor::Visit(While &aWhile) {
+    aWhile.Operand(0)->AcceptDepthFirst(expressionVisitor);
+    Accept(aWhile.Statements(), *this);
+}
+
+void ExpressionInstructionVisitor::Visit(If &anIf) {
+    anIf.Operand(0)->AcceptDepthFirst(expressionVisitor);
+    if (anIf.trueNode.use_count() > 0)
+        Accept(anIf.trueNode->Instructions(), *this);
+    if (anIf.falseNode.use_count() > 0)
+        Accept(anIf.falseNode->Instructions(), *this);
+}
