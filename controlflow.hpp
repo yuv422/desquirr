@@ -237,5 +237,37 @@ private:
 
 
 };/*}}}*/
+
+class SwitchLogicHandler : public InstructionVisitor {
+private:
+    bool didWork;
+public:
+    SwitchLogicHandler() : didWork(false) {};
+
+public:
+    virtual void Visit(Assignment &assignment) {}
+    virtual void Visit(Case &aCase) {}
+    virtual void Visit(ConditionalJump &jump) {}
+    virtual void Visit(Jump &jump) {}
+    virtual void Visit(Label &label) {}
+    virtual void Visit(LowLevel &level) {}
+    virtual void Visit(Push &push) {}
+    virtual void Visit(Pop &pop) {}
+    virtual void Visit(Return &aReturn) {}
+    virtual void Visit(Switch &aSwitch) {}
+    virtual void Visit(DoWhile &aWhile) {}
+    virtual void Visit(While &aWhile) {}
+    virtual void Visit(If &anIf) {}
+    virtual void Visit(Break &aBreak) {}
+    virtual void Visit(Continue &aContinue) {}
+    virtual void Visit(Throw &aThrow) {}
+
+    virtual void NodeList(Node_list &nodes);
+
+    bool DidWork() { return didWork; }
+
+private:
+    std::set<Node_ptr> findSwitchExitNodes(Node_ptr switchNode, Node_list &blocks);
+};
 #endif // _CONTROLFLOW_HPP
 

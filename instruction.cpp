@@ -51,6 +51,8 @@ void Accept(Node_list &nodes, InstructionVisitor &visitor)/*{{{*/
         Accept((**i).Instructions(), visitor);
         visitor.NodeEnd();
     }
+
+    visitor.NodeList(nodes);
 }/*}}}*/
 
 /**

@@ -563,13 +563,13 @@ class N_WayNode : public Node/*{{{*/
             std::vector<Addr>::iterator it = find(mSuccessorAddress.begin(), mSuccessorAddress.end(), successor->Address());
             if (it != mSuccessorAddress.end())
             {
-                mSuccessorAddress.erase(it, it);
+                mSuccessorAddress.erase(it);
             }
 
             std::vector<Node_ptr>::iterator it1 = find(mSuccessor.begin(), mSuccessor.end(), successor);
             if (it1 != mSuccessor.end())
             {
-                mSuccessor.erase(it1, it1);
+                mSuccessor.erase(it1);
             }
         }
 
