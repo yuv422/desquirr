@@ -1067,7 +1067,19 @@ int ControlFlowAnalysis::StructureIf(Node_list &blocks, Node_ptr node)
 
 void ControlFlowAnalysis::StructureSwitches(Node_list &blocks)
 {
-    FindDominators(blocks);
+    bool didWork = true;
+    for(int i=0;didWork;i++)
+    {
+        msg("Switch collator pass %d\n", i);
+        SwitchLogicHandler s;
+        Accept(blocks, s);
+        didWork = s.DidWork();
+    }
+}
+
+void SwitchLogicHandler::NodeList(Node_list &blocks)
+{
+    ControlFlowAnalysis::FindDominators(blocks);
     Node_list nodesToRemove;
 
     for (Node_list::iterator n = blocks.begin();
@@ -1076,8 +1088,14 @@ void ControlFlowAnalysis::StructureSwitches(Node_list &blocks)
     {
         Node_ptr node = *n;
         if(node->Type() == Node::N_WAY && node->Instructions().back()->Type() == Instruction::SWITCH) {
-            std::set<Node_ptr> exitNodes = findSwitchExitNodes(node, blocks);
             Switch *switchInsn = static_cast<Switch *>(node->Instructions().back().get());
+
+            if (!switchInsn->Statements().empty())
+            {
+                continue; // already processed this switch instruction.
+            }
+
+            std::set<Node_ptr> exitNodes = findSwitchExitNodes(node, blocks);
             N_WayNode *switchNode = static_cast<N_WayNode *>(node.get());
 
             if (exitNodes.size() > 1)
@@ -1109,8 +1127,26 @@ void ControlFlowAnalysis::StructureSwitches(Node_list &blocks)
                     }
 
                     nodesToRemove.push_back(dominatedNode);
+                    didWork = true;
                 }
             }
+
+            Node_ptr new_node = Node_ptr(new FallThroughNode(exitNode->Address(), node->Instructions().begin(),
+                                                             node->Instructions().end()));
+            new_node->ConnectSuccessor(0, exitNode);
+
+            //fixup preds
+            for (Node_list::iterator np = node->mPreds.begin();
+                 np != node->mPreds.end();
+                 np++)
+            {
+                Node_ptr predNode = *np;
+                predNode->ReconnectSuccessor(node, new_node); //reconnect successors
+            }
+
+            blocks.insert(n, new_node);
+
+            nodesToRemove.push_back(node);
 
             for (Node_list::iterator n1 = nodesToRemove.begin();
                  n1 != nodesToRemove.end();
@@ -1118,11 +1154,13 @@ void ControlFlowAnalysis::StructureSwitches(Node_list &blocks)
             {
                 blocks.remove(*n1);
             }
+
+            return;
         }
     }
 }
 
-std::set<Node_ptr> ControlFlowAnalysis::findSwitchExitNodes(Node_ptr switchNode, Node_list &blocks)
+std::set<Node_ptr> SwitchLogicHandler::findSwitchExitNodes(Node_ptr switchNode, Node_list &blocks)
 {
     std::set<Node_ptr> exitNodes;
 
@@ -1146,7 +1184,7 @@ std::set<Node_ptr> ControlFlowAnalysis::findSwitchExitNodes(Node_ptr switchNode,
                 if (!switchNode->DominatesNode(successor))
                 {
                     exitNodes.insert(successor);
-                    msg("found exit node for switch %a\n", successor->Address());
+                    msg("found exit node for switch %a case node(%a) exit via(%a)\n", switchNode->Address(), node->Address(), successor->Address());
                 }
             }
         }
@@ -1154,4 +1192,3 @@ std::set<Node_ptr> ControlFlowAnalysis::findSwitchExitNodes(Node_ptr switchNode,
 
     return exitNodes;
 }
-

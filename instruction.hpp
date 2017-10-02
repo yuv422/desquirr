@@ -256,6 +256,9 @@ public:
 
     virtual void NodeEnd()
     {}
+
+    virtual void NodeList(Node_list &nodes)
+    {}
 };
 
 void Accept(Node_list &nodes, InstructionVisitor &visitor);
