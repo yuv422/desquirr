@@ -455,6 +455,12 @@ void ControlFlowAnalysis::StructureWhileLoop(Loop *loop)
     expr = static_cast<ConditionalJumpNode *>(loop->nodes.front().get())->FindJumpInstruction();
 
 
+    if (loop->breakNode.use_count() == 0)
+    {
+        msg("Error: while loop without breakNode!");
+        return;
+    }
+
     ExpressionNegationHelper negExpr;
 
     //test
