@@ -380,7 +380,10 @@ const std::vector<Addr> Node::GetSwitchExpression(Addr address)
     bool ok = xr.first_from(address, XREF_ALL);
 
     for(;ok;ok = xr.next_from()) {
-        successors.push_back((Addr)xr.to);
+        if (xr.iscode)
+        {
+            successors.push_back((Addr)xr.to);
+        }
     }
 
     return successors;

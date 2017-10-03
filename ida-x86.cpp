@@ -2555,31 +2555,33 @@ protected:
             bool ok = xr.first_from(insn.ea, XREF_ALL);
             msg("switch here %a, %a\n", si.jumps, xr.to);
             address = xr.to;
-            // Find case statements
-            for (Instruction_list::iterator item = Iterator();
-                 item != Instructions().end();
-                 item++)
-            {
-                if ((**item).Address() == address &&
-                    (**item).IsType(Instruction::LABEL))
-                {
-                    std::vector<std::string> cases = ExtractCases(*item);
-                    msg("%p case %i statement here\n", address, i);
-                    Erase(item);
+            if (xr.iscode) {
+                // Find case statements
+                for (Instruction_list::iterator item = Iterator();
+                     item != Instructions().end();
+                     item++) {
+                    if ((**item).Address() == address &&
+                        (**item).IsType(Instruction::LABEL)) {
+                        std::vector<std::string> cases = ExtractCases(*item);
+                        msg("%p case %i statement here\n", address, i);
+                        Erase(item);
 
-                    Instructions().insert(item,
-                                          Instruction_ptr(new Case(address, cases)));
+                        Instructions().insert(item,
+                                              Instruction_ptr(new Case(address, cases)));
 
-                    if (++i == si.ncases)
-                        break;
+                        if (++i == si.ncases)
+                            break;
 
-                    //address = get_long(si.jumps + 4*i);
-                    xr.next_from();
-                    address = xr.to;
-                    msg("next case addr = %a\n", address);
+                        //address = get_long(si.jumps + 4*i);
+                        xr.next_from();
+                        if (!xr.iscode)
+                            break;
+
+                        address = xr.to;
+                        msg("next case addr = %a\n", address);
+                    }
                 }
             }
-
             Insert(new Switch(
                     insn.ea,
                     Register::Create(REG_AX)/*,
