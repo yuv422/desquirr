@@ -331,9 +331,18 @@ void Node::CreateSharedNodes(Node_list &nodes)
                     new_node->CopySuccessors(node);
 
                     predNode->ReconnectSuccessor(node, new_node); //reconnect successors
-                    //nodes.insert(nodes.begin(), new_node);
+
+                    new_node->mPreds.push_back(predNode); //connect up single predecessor
+
+                    for (int i = 0; i < node->SuccessorCount(); i++)
+                    {
+                        node->Successor(i)->mPreds.push_back(new_node);
+                    }
+
                     nodes.insert(n, new_node);
                 }
+
+                node->mPreds.erase(node->mPreds.begin()++, node->mPreds.end()); //remove all but the first predecessor from the original node.
             }
         }
     }

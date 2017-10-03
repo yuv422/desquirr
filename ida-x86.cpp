@@ -689,8 +689,15 @@ protected:
                         }
                     }
                     //msg("%p Name=%s\n", address, name.c_str());
-                    Instruction_ptr label(new Label(address, name.c_str()));
-                    Instructions().push_back(label);
+                    if (isCode(flags))
+                    {
+                        Instruction_ptr label(new Label(address, name.c_str()));
+                        Instructions().push_back(label);
+                    }
+                    else
+                    {
+                        msg("Attempting to label data.\n");
+                    }
                 }
             }
 

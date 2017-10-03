@@ -1190,7 +1190,7 @@ std::set<Node_ptr> SwitchLogicHandler::findSwitchExitNodes(Node_ptr switchNode, 
                 if (!switchNode->DominatesNode(successor))
                 {
                     exitNodes.insert(successor);
-                    msg("found exit node for switch %a case node(%a) exit via(%a)\n", switchNode->Address(), node->Address(), successor->Address());
+                    msg("found exit node for switch %a case node(%s:%a) exit via(%a)\n", switchNode->Address(), node->TypeString(), node->Address(), successor->Address());
                 }
             }
         }
