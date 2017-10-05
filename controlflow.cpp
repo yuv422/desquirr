@@ -1136,6 +1136,7 @@ void SwitchLogicHandler::NodeList(Node_list &blocks)
                     didWork = true;
                 }
             }
+            switchInsn->AddStatementNode(breakNodeStub); //needs to be added last because it is the exit node. FIXME should handle exit nodes better.
 
             Node_ptr new_node = Node_ptr(new FallThroughNode(exitNode->Address(), node->Instructions().begin(),
                                                              node->Instructions().end()));
@@ -1197,4 +1198,11 @@ std::set<Node_ptr> SwitchLogicHandler::findSwitchExitNodes(Node_ptr switchNode, 
     }
 
     return exitNodes;
+}
+
+void SwitchLogicHandler::Visit(Switch &aSwitch) {
+    if (!aSwitch.Statements().empty())
+    {
+        Accept(aSwitch.Statements(), *this);
+    }
 }

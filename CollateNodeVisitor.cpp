@@ -102,6 +102,8 @@ bool CollateNodeVisitor::visit(Node_ptr node) {
         msg("removed single jump node at %a\n", node->Successor(1)->Address());
         Node_ptr follower = node->Successor(1);
         node->ReconnectSuccessor(follower, follower->Successor(0));
+        follower->mPreds.remove(node);
+
         follower->MarkForDeletion();
 
         didWorkFlag = true;

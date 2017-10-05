@@ -254,7 +254,7 @@ public:
     virtual void Visit(Push &push) {}
     virtual void Visit(Pop &pop) {}
     virtual void Visit(Return &aReturn) {}
-    virtual void Visit(Switch &aSwitch) {}
+    virtual void Visit(Switch &aSwitch);
     virtual void Visit(DoWhile &aWhile) {}
     virtual void Visit(While &aWhile) {}
     virtual void Visit(If &anIf) {}

@@ -320,10 +320,7 @@ public:
         return n->mPostDominators.test((unsigned long)this->domId);
     }
 
-    void MarkForDeletion()
-    {
-        mType = TO_BE_DELETED;
-    }
+    void MarkForDeletion();
 
     int domId;
     Node_list mPreds;

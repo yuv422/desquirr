@@ -355,7 +355,6 @@ void Node::LiveRegisterAnalysis(Node_list &nodes)
 
     do
     {
-//		message(".");
         changed = false;
 
         for (Node_list::reverse_iterator item = nodes.rbegin();
@@ -396,6 +395,14 @@ const std::vector<Addr> Node::GetSwitchExpression(Addr address)
     }
 
     return successors;
+}
+
+void Node::MarkForDeletion() {
+    mType = TO_BE_DELETED;
+    if (mAddress == 0x1cde3 || mAddress == 116800)
+    {
+        msg("hmm.ok\n");
+    }
 }
 /*}}}*/
 
