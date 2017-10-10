@@ -309,10 +309,7 @@ public:
     virtual ~Instruction()
     {}
 
-    virtual Instruction_ptr Copy()
-    {
-        return Instruction_ptr();
-    }
+    virtual Instruction_ptr Copy() = 0;
 
 #if 1
 

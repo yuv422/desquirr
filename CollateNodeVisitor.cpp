@@ -25,16 +25,7 @@ bool CollateNodeVisitor::visit(Node_ptr node) {
 
         follower->Cleanup(false); //clean up goto's and labels. Leave first label and last goto.
 
-        follower->mPreds.clear();
-
-        for (Node_list::iterator p = node->mPreds.begin();
-             p != node->mPreds.end();
-             p++)
-        {
-            Node_ptr predNode = *p;
-            follower->ConnectPredecessor(predNode);
-            predNode->ReconnectSuccessor(node, follower); //reconnect successors
-        }
+        node->ReplaceSuccessorNodeFromPrecessors(follower);
 /*
         Node_ptr new_node = Node_ptr();
 
@@ -102,7 +93,6 @@ bool CollateNodeVisitor::visit(Node_ptr node) {
         msg("removed single jump node at %a\n", node->Successor(1)->Address());
         Node_ptr follower = node->Successor(1);
         node->ReconnectSuccessor(follower, follower->Successor(0));
-        follower->mPreds.remove(node);
 
         follower->MarkForDeletion();
 

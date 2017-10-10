@@ -51,6 +51,11 @@ public:
               mInsn(insn)
     {}
 
+    virtual Instruction_ptr Copy()
+    {
+        return Instruction_ptr(new LowLevel(mInsn));
+    }
+
     virtual void Accept(InstructionVisitor &visitor)
     {
         visitor.Visit(*this);

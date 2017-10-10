@@ -323,21 +323,14 @@ void Node::CreateSharedNodes(Node_list &nodes)
             {
                 Node_list::iterator p = node->mPreds.begin();
                 p++; //skip first predecessor.
-                for (; p != node->mPreds.end(); p++)
+                for (; p != node->mPreds.end(); )
                 {
                     Node_ptr predNode = *p;
-
+                    p++;
                     Node_ptr new_node = node->Copy();
                     new_node->CopySuccessors(node);
 
                     predNode->ReconnectSuccessor(node, new_node); //reconnect successors
-
-                    new_node->mPreds.push_back(predNode); //connect up single predecessor
-
-                    for (int i = 0; i < node->SuccessorCount(); i++)
-                    {
-                        node->Successor(i)->mPreds.push_back(new_node);
-                    }
 
                     nodes.insert(n, new_node);
                 }
@@ -404,5 +397,24 @@ void Node::MarkForDeletion() {
         msg("hmm.ok\n");
     }
 }
+
+void Node::ReplaceSuccessorNodeFromPrecessors(Node_ptr new_successor) {
+    for (Node_list::iterator n = mPreds.begin();
+         n != mPreds.end(); )
+    {
+        Node_ptr predNode = *n;
+        n++;
+        predNode->ReconnectSuccessor(shared_from_this(), new_successor); //reconnect successors
+    }
+}
+
+void Node::RemovePredecessor(Node_ptr predecessor) {
+    //assert that we have a predecessor to delete.
+    assert(find(mPreds.begin(), mPreds.end(), predecessor) != mPreds.end());
+    mPreds.remove(predecessor);
+}
 /*}}}*/
 
+N_WayNode::~N_WayNode() {
+    msg("N Way Node destructor called.\n");
+}

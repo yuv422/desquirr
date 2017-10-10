@@ -39,6 +39,7 @@ Node  ... begin-end
 */
 #include <vector>
 #include <boost/dynamic_bitset.hpp>
+#include <boost/enable_shared_from_this.hpp>
 
 //
 // Local includes
@@ -46,7 +47,7 @@ Node  ... begin-end
 #include "desquirr.hpp"
 #include "instruction.hpp"
 
-class Node/*{{{*/
+class Node : public boost::enable_shared_from_this<Node> /*{{{*/
 {
 public:
     enum NodeType
@@ -173,10 +174,15 @@ public:
         return false;
     }
 
+    void ReplaceSuccessorNodeFromPrecessors(Node_ptr new_successor);
+
     void ConnectPredecessor(Node_ptr predecessor)
     {
+        assert(!HasPredecessor(predecessor));
         mPreds.push_back(predecessor);
     }
+
+    void RemovePredecessor(Node_ptr predecessor);
 
     bool HasPredecessor(Node_ptr predecessor)
     {
@@ -387,6 +393,8 @@ protected:
         {
             mSuccessor = new_successor;
             mSuccessorAddress = new_successor->Address();
+            old_successor->RemovePredecessor(shared_from_this());
+            new_successor->ConnectPredecessor(shared_from_this());
             return true;
         }
 
@@ -472,6 +480,12 @@ protected:
             matched = true;
         }
 
+        if (matched)
+        {
+            old_successor->RemovePredecessor(shared_from_this());
+            new_successor->ConnectPredecessor(shared_from_this());
+        }
+
         return matched;
     }
 
@@ -503,6 +517,8 @@ class N_WayNode : public Node/*{{{*/
             mSuccessorAddress = successor_list;
             mSuccessor.resize(successor_list.size());
         }
+
+    ~N_WayNode();
 
         virtual int SuccessorCount()
         {
@@ -548,6 +564,8 @@ class N_WayNode : public Node/*{{{*/
                 {
                     mSuccessor[i] = new_successor;
                     mSuccessorAddress[i] = new_successor->Address();
+                    old_successor->RemovePredecessor(shared_from_this());
+                    new_successor->ConnectPredecessor(shared_from_this());
                     matched = true;
                 }
             }
@@ -568,6 +586,8 @@ class N_WayNode : public Node/*{{{*/
             {
                 mSuccessor.erase(it1);
             }
+
+            successor->RemovePredecessor(shared_from_this());
         }
 
     private:
@@ -597,7 +617,7 @@ public:
         }
 
         Node_ptr np = Node_ptr(new JumpNode(SuccessorAddress(0), list.begin(), list.end()));
-        //np->CopySuccessors(Node_ptr(this));
+        //np->CopySuccessors(shared_from_this());
 
         return np;
     }
@@ -640,7 +660,7 @@ public:
 
         Node_ptr np = Node_ptr(
                 new ConditionalJumpNode(SuccessorAddress(0), SuccessorAddress(1), list.begin(), list.end()));
-        //np->CopySuccessors(Node_ptr(this));
+        //np->CopySuccessors(shared_from_this());
 
         return np;
     }
@@ -704,7 +724,7 @@ public:
         }
 
         Node_ptr np = Node_ptr(new FallThroughNode(SuccessorAddress(0), list.begin(), list.end()));
-        //np->CopySuccessors(Node_ptr(this));
+        //np->CopySuccessors(shared_from_this());
         return np;
     }
 

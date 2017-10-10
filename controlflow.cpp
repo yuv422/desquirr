@@ -707,10 +707,10 @@ void ControlFlowAnalysis::StructureDoWhileLoop(Loop *loop)
     doWhileInstruction->AddLoopNode(loop_break);
 
     for (Node_list::iterator n = loop->header->mPreds.begin();
-         n != loop->header->mPreds.end();
-         n++)
+         n != loop->header->mPreds.end(); )
     {
         Node_ptr predNode = *n;
+        n++;
         Node_list::const_iterator loop_iter = find(loop->nodes.begin(), loop->nodes.end(), predNode);
         if (loop_iter == loop->nodes.end()) //only link to nodes that are not part of the loop.
         {
@@ -897,13 +897,8 @@ int ControlFlowAnalysis::StructureIfElse(Node_list &blocks, Node_ptr node)
     //fixup preds
     Node_ptr followerNode = trueNode->Successor(0);
 
-    for (Node_list::iterator n = node->mPreds.begin();
-         n != node->mPreds.end();
-         n++)
-    {
-        Node_ptr predNode = *n;
-        predNode->ReconnectSuccessor(node, new_node); //reconnect successors
-    }
+    node->ReplaceSuccessorNodeFromPrecessors(new_node);
+
 
     return 1;
 }
@@ -953,14 +948,7 @@ int ControlFlowAnalysis::StructureIf(Node_list &blocks, Node_ptr node)
 
         //fixup preds
 
-
-        for (Node_list::iterator n = node->mPreds.begin();
-             n != node->mPreds.end();
-             n++)
-        {
-            Node_ptr predNode = *n;
-            predNode->ReconnectSuccessor(node, new_node); //reconnect successors
-        }
+        node->ReplaceSuccessorNodeFromPrecessors(new_node);
 
         return 1;
     }
@@ -1008,15 +996,7 @@ int ControlFlowAnalysis::StructureIf(Node_list &blocks, Node_ptr node)
 
 
         //fixup preds
-
-
-        for (Node_list::iterator n = node->mPreds.begin();
-             n != node->mPreds.end();
-             n++)
-        {
-            Node_ptr predNode = *n;
-            predNode->ReconnectSuccessor(node, new_node); //reconnect successors
-        }
+        node->ReplaceSuccessorNodeFromPrecessors(new_node);
 
         return 1;
     }
@@ -1055,14 +1035,7 @@ int ControlFlowAnalysis::StructureIf(Node_list &blocks, Node_ptr node)
         new_node->ConnectSuccessor(0, jumpNode);
 
         //fixup preds
-
-        for (Node_list::iterator n = node->mPreds.begin();
-             n != node->mPreds.end();
-             n++)
-        {
-            Node_ptr predNode = *n;
-            predNode->ReconnectSuccessor(node, new_node); //reconnect successors
-        }
+        node->ReplaceSuccessorNodeFromPrecessors(new_node);
 
         return 1;
     }
@@ -1143,13 +1116,7 @@ void SwitchLogicHandler::NodeList(Node_list &blocks)
             new_node->ConnectSuccessor(0, exitNode);
 
             //fixup preds
-            for (Node_list::iterator np = node->mPreds.begin();
-                 np != node->mPreds.end();
-                 np++)
-            {
-                Node_ptr predNode = *np;
-                predNode->ReconnectSuccessor(node, new_node); //reconnect successors
-            }
+            node->ReplaceSuccessorNodeFromPrecessors(new_node);
 
             blocks.insert(n, new_node);
 

@@ -76,13 +76,7 @@ int CollateNode::Run()
             follower->MarkForDeletion();
             node->MarkForDeletion();
 
-            for (Node_list::iterator p = node->mPreds.begin();
-                 p != node->mPreds.end();
-                 p++)
-            {
-                Node_ptr predNode = *p;
-                predNode->ReconnectSuccessor(node, new_node); //reconnect successors
-            }
+            node->ReplaceSuccessorNodeFromPrecessors(new_node);
 
             //nMatched++;
 
