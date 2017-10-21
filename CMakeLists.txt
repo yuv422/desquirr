@@ -7,8 +7,6 @@ set(SOURCE_FILES
         analysis.hpp
         codegen.cpp
         codegen.hpp
-        collateexpr.cpp
-        collateexpr.hpp
         collatenode.cpp
         collatenode.hpp
         controlflow.cpp

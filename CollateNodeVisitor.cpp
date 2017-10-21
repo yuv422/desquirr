@@ -8,7 +8,7 @@
 bool CollateNodeVisitor::visit(Node_ptr node) {
     if ((node->Type() == Node::FALL_THROUGH || node->Type() == Node::JUMP)
         && (node->Successor(0)->Type() == Node::FALL_THROUGH || node->Successor(0)->Type() == Node::JUMP ||
-            node->Successor(0)->Type() == Node::CONDITIONAL_JUMP)
+            node->Successor(0)->Type() == Node::CONDITIONAL_JUMP || node->Successor(0)->Type() == Node::RETURN)
         && node->Successor(0)->PredecessorCount() == 1) //node1 dominates it's follower node
     {
 

@@ -64,6 +64,7 @@ void ControlFlowAnalysis::FindDominators(Node_list &blocks)
         for (i = 0; i < node->SuccessorCount(); i++)
         {
             Node_ptr succ = node->Successor(i);
+            assert(find(blocks.begin(), blocks.end(), succ) != blocks.end()); //assert that successor is in block list.
             succ->ConnectPredecessor(node);
         }
     }
@@ -118,7 +119,7 @@ void ControlFlowAnalysis::FindDominators(Node_list &blocks)
              it++)
         {
             Node_ptr node = *it;
-            if (node == blocks.back()) //this should be the exit node. FIXME need better way of finding exit block.
+            if (node->SuccessorCount() == 0) // the exit node.
                 continue;
 
             t.set();
@@ -552,10 +553,10 @@ void ControlFlowAnalysis::StructureWhileLoop(Loop *loop)
     whileInstruction->AddLoopNode(loop_break);
 
     for (Node_list::iterator n = loop->header->mPreds.begin();
-         n != loop->header->mPreds.end();
-         n++)
+         n != loop->header->mPreds.end(); )
     {
         Node_ptr predNode = *n;
+        n++;
         Node_list::const_iterator loop_iter = find(loop->nodes.begin(), loop->nodes.end(), predNode);
         if (loop_iter == loop->nodes.end()) //only link to nodes that are not part of the loop.
         {
@@ -1077,34 +1078,69 @@ void SwitchLogicHandler::NodeList(Node_list &blocks)
             std::set<Node_ptr> exitNodes = findSwitchExitNodes(node, blocks);
             N_WayNode *switchNode = static_cast<N_WayNode *>(node.get());
 
-            if (exitNodes.size() > 1)
+            if (exitNodes.size() != 1)
             {
                 msg("WARN: %d exit nodes found in switch case nodes.\n", exitNodes.size());
                 continue;
             }
             Node_ptr exitNode = *exitNodes.begin();
+
+            StubNode *startNodeStub = new StubNode(Node::LOOP_CONTINUE);
+            switchInsn->AddStatementNode(Node_ptr(startNodeStub));
+
             Node_ptr breakNodeStub = Node_ptr(new Node(Node::LOOP_BREAK, exitNode->Address())); //FIXME need to rename this to BREAK
             for (Node_list::iterator n1 = blocks.begin();
                  n1 != blocks.end();
                  n1++) {
-                if (*n1 != *n && node->DominatesNode(*n1) && *n1 != exitNode) {
+                if (*n1 != *n && node->DominatesNode(*n1) && *n1 != exitNode && (*n1)->SuccessorCount() != 0) {
                     Node_ptr dominatedNode = *n1;
                     msg("Adding Node %a to switch statement\n", dominatedNode->Address());
-                    if (dominatedNode->HasPredecessor(node))
+                    bool isAStartNode = dominatedNode->HasPredecessor(node);
+                    if (isAStartNode)
                     {
                         switchNode->RemoveSuccessor(dominatedNode);
                     }
-                    //disconnect successors that aren't dominated by switch node
-                    switchInsn->AddStatementNode(dominatedNode);
 
                     if (dominatedNode->HasSuccessor(exitNode))
                     {
                         //If this node exits the case statement block then remove jump instruction/label and add break instruction.
                         dominatedNode->ReconnectSuccessor(exitNode, breakNodeStub);
                         dominatedNode->Cleanup(true);
+                        if(dominatedNode->Instructions().size() > 0 && dominatedNode->Instructions().back()->Type() == Instruction::BREAK)
+                        {
+                            msg("double break detected."); //FIXME
+                        }
                         dominatedNode->Instructions().push_back(Instruction_ptr(new Break(exitNode->Address()))); //FIXME what should this address be?
+
+                        switchInsn->AddStatementNode(dominatedNode);
+                        if (isAStartNode)
+                            startNodeStub->AddSuccessor(dominatedNode);
+                    }
+                    else if (dominatedNode->SuccessorCount() == 1 && dominatedNode->Successor(0)->Type() == Node::RETURN)
+                    {
+                        Node_ptr returnNode = dominatedNode->Successor(0);
+                        //case statement is ended with a return call.
+                        returnNode->RemovePredecessor(dominatedNode);
+
+                        Node_ptr newReturnNode = Node_ptr(new FallThroughNode(breakNodeStub->Address(), dominatedNode->Instructions().begin(), dominatedNode->Instructions().end()));
+                        newReturnNode->ConnectSuccessor(0 , breakNodeStub);
+                        dominatedNode->ReplaceSuccessorNodeFromPrecessors(newReturnNode);
+                        //copy return instructions into case node.
+                        newReturnNode->Instructions().insert(newReturnNode->Instructions().end(), returnNode->Instructions().begin(), returnNode->Instructions().end());
+                        newReturnNode->Cleanup(true);
+
+                        switchInsn->AddStatementNode(newReturnNode);
+                        if (isAStartNode)
+                            startNodeStub->AddSuccessor(newReturnNode);
+                    }
+                    else
+                    {
+                        switchInsn->AddStatementNode(dominatedNode);
+                        if (isAStartNode)
+                            startNodeStub->AddSuccessor(dominatedNode);
                     }
 
+                    assert(find(nodesToRemove.begin(), nodesToRemove.end(), dominatedNode) == nodesToRemove.end()); //assert we aren't double deleting.
                     nodesToRemove.push_back(dominatedNode);
                     didWork = true;
                 }
@@ -1148,17 +1184,27 @@ std::set<Node_ptr> SwitchLogicHandler::findSwitchExitNodes(Node_ptr switchNode, 
             if (node->PostDominatesNode(switchNode))
             {
                 exitNodes.insert(node);
-                msg("found post dominating exit node for switch %a\n", node->Address());
+                msg("found post dominating exit node for switch %a node(%s:%a)\n", switchNode->Address(),
+                    node->TypeString(), node->Address());
                 return exitNodes;
             }
+        }
+    }
 
+    for (Node_list::iterator n = blocks.begin();
+         n != blocks.end();
+         n++)
+    {
+        Node_ptr node = *n;
+        if (node != switchNode && switchNode->DominatesNode(node))
+        {
             for (int i = 0; i < node->SuccessorCount(); i++)
             {
                 Node_ptr successor = node->Successor(i);
-                if (!switchNode->DominatesNode(successor))
+                if (!switchNode->DominatesNode(successor) && (successor->Type() != Node::RETURN || node->SuccessorCount() > 1))
                 {
                     exitNodes.insert(successor);
-                    msg("found exit node for switch %a case node(%s:%a) exit via(%a)\n", switchNode->Address(), node->TypeString(), node->Address(), successor->Address());
+                    msg("found exit node for switch %a case node(%s:%a) exit via(%s:%a)\n", switchNode->Address(), node->TypeString(), node->Address(), successor->TypeString(), successor->Address());
                 }
             }
         }

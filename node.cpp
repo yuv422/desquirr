@@ -279,9 +279,6 @@ struct ConnectSuccessorsHelper
             Node_map::iterator item = mMap.find(node->SuccessorAddress(i));
             if (mMap.end() != item)
             {
-                Node_ptr pred_node = static_cast<Node_ptr>(item->second); //FIXME do we still need this?
-                pred_node->ConnectPredecessor(node);
-
                 bool success = node->ConnectSuccessor(i, item->second);
                 if (!success)
                 {
@@ -417,4 +414,9 @@ void Node::RemovePredecessor(Node_ptr predecessor) {
 
 N_WayNode::~N_WayNode() {
     msg("N Way Node destructor called.\n");
+}
+
+StubNode::StubNode(Node::NodeType type) : Node(type, INVALID_ADDR)
+{
+
 }

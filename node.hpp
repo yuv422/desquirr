@@ -40,6 +40,7 @@ Node  ... begin-end
 #include <vector>
 #include <boost/dynamic_bitset.hpp>
 #include <boost/enable_shared_from_this.hpp>
+#include <set>
 
 //
 // Local includes
@@ -381,6 +382,7 @@ protected:
         if (0 == index && successor->Address() == mSuccessorAddress)
         {
             mSuccessor = successor;
+            successor->ConnectPredecessor(shared_from_this());
             return true;
         }
         else
@@ -455,6 +457,7 @@ protected:
                 if (successor->Address() == mSuccessorAddress[index])
                 {
                     mSuccessor[index] = successor;
+                    successor->ConnectPredecessor(shared_from_this());
                     return true;
                 }
                 // fall through
@@ -551,6 +554,7 @@ class N_WayNode : public Node/*{{{*/
             if (successor->Address() == mSuccessorAddress[index])
             {
                 mSuccessor[index] = successor;
+                successor->ConnectPredecessor(shared_from_this());
                 return true;
             }
         }
@@ -811,5 +815,57 @@ public:
     Addr continueAddr;
 
 };/*}}}*/
+
+class StubNode : public Node
+{
+public:
+    StubNode(NodeType type);
+
+    void AddSuccessor(Node_ptr successor)
+    {
+        assert(find(mSuccessor.begin(), mSuccessor.end(), successor) == mSuccessor.end());
+        mSuccessor.push_back(successor);
+    }
+
+    virtual int SuccessorCount()
+    {
+        return (int)mSuccessor.size();
+    }
+
+    virtual Node_ptr Successor(int index)
+    {
+        if(index < mSuccessor.capacity())
+            return mSuccessor[index];
+
+        return Node_ptr();
+    }
+
+    virtual bool ConnectSuccessor(int index, Node_ptr successor)
+    {
+        if (index < mSuccessor.capacity())
+        {
+            mSuccessor[index] = successor;
+            return true;
+        }
+
+        return false;
+    }
+
+    virtual bool ReconnectSuccessor(Node_ptr old_successor, Node_ptr new_successor)
+    {
+        std::vector<Node_ptr>::iterator i = find(mSuccessor.begin(), mSuccessor.end(), old_successor);
+        if(i != mSuccessor.end())
+        {
+            replace(mSuccessor.begin(), mSuccessor.end(), old_successor, new_successor);
+            old_successor->RemovePredecessor(shared_from_this());
+            new_successor->ConnectPredecessor(shared_from_this());
+            return true;
+        }
+        return false;
+    }
+
+private:
+    std::vector<Node_ptr> mSuccessor;
+};
 #endif
 
