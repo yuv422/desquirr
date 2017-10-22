@@ -1045,7 +1045,9 @@ class If : public UnaryInstruction/*{{{*/
 public:
     If(Addr ea, Expression_ptr value)
             : UnaryInstruction(IF, ea, value)
-    {}
+    {
+        assert(value.get() != NULL);
+    }
 
     virtual Instruction_ptr Copy()
     {

@@ -20,6 +20,11 @@
 // DEALINGS IN THE SOFTWARE.
 //
 // $Id: ida-x86.cpp,v 1.4 2007/01/30 09:48:51 wjhengeveld Exp $
+
+#include <cstdlib>
+#include <boost/algorithm/string.hpp>
+#include <boost/lexical_cast.hpp>
+
 #include "idainternal.hpp"
 #include "ida-x86.hpp"
 #include "analysis.hpp"
@@ -2495,6 +2500,45 @@ protected:
         DumpInsn(insn);
     }/*}}}*/
 
+    int stoi(std::string s)
+    {
+        return (int)strtol(s.c_str(), NULL, 10);
+    }
+
+    std::string to_string(int v)
+    {
+       return boost::lexical_cast<std::string>(v);
+    }
+
+    std::vector<std::string> ExtractMulipleCases(std::string values)
+    {
+        std::vector<std::string> valueSplit;
+        std::vector<std::string> cases;
+
+        boost::split(valueSplit, values, boost::is_any_of(","));
+
+        for(std::vector<std::string>::iterator it = valueSplit.begin(); it != valueSplit.end(); it++)
+        {
+            size_t rangeDelimitorPos = (*it).find("-");
+            if (rangeDelimitorPos == std::string::npos)
+            {
+                cases.push_back(*it);
+            }
+            else
+            {
+                //handle range expression.
+                int low = stoi((*it).substr(0, rangeDelimitorPos));
+                int high = stoi((*it).substr(rangeDelimitorPos+1, (*it).length() - rangeDelimitorPos - 1));
+
+                for(int i=low;i <= high; i++)
+                {
+                    cases.push_back(to_string(i));
+                }
+            }
+        }
+        return cases;
+    }
+
     std::vector<std::string> ExtractCases(boost::shared_ptr<Instruction> &shared_ptr)
     {
         std::vector<std::string> cases;
@@ -2531,7 +2575,8 @@ protected:
                     size_t end = str.find_first_not_of("1234567890,-", pos);
                     if (end != std::string::npos)
                     {
-                        cases.push_back(str.substr(pos, end-pos)); //fixme need to break this apart.
+                        std::vector<std::string> extractedCases = ExtractMulipleCases(str.substr(pos, end-pos));
+                        cases.insert(cases.end(), extractedCases.begin(), extractedCases.end());
                     }
                 }
             }

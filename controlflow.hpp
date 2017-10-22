@@ -68,6 +68,8 @@ public:
 
     void StructureSwitches(Node_list &blocks);
 
+    static void StructureIfs(Node_list &blocks);
+
 private:
     /**
      * Analyze an individual node (in mNode)
@@ -100,11 +102,9 @@ private:
 
     void StructureBreakContinue(Node_list &blocks, Node_ptr continueNode, Node_ptr breakNode);
 
-    void StructureIfs(Node_list &blocks);
+    static int StructureIfElse(Node_list &blocks, Node_ptr node);
 
-    int StructureIfElse(Node_list &blocks, Node_ptr node);
-
-    int StructureIf(Node_list &blocks, Node_ptr node);
+    static int StructureIf(Node_list &blocks, Node_ptr node);
 
 private:
     Node_list &mNodeList;

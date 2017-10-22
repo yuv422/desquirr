@@ -1103,14 +1103,21 @@ void SwitchLogicHandler::NodeList(Node_list &blocks)
 
                     if (dominatedNode->HasSuccessor(exitNode))
                     {
-                        //If this node exits the case statement block then remove jump instruction/label and add break instruction.
+                        //replace exit node link with stub breakNode.
                         dominatedNode->ReconnectSuccessor(exitNode, breakNodeStub);
-                        dominatedNode->Cleanup(true);
-                        if(dominatedNode->Instructions().size() > 0 && dominatedNode->Instructions().back()->Type() == Instruction::BREAK)
+
+                        if (dominatedNode->Type() == Node::FALL_THROUGH || dominatedNode->Type() == Node::JUMP)
                         {
-                            msg("double break detected."); //FIXME
+                            //If this node exits the case statement block then remove jump instruction/label and add break instruction.
+                            dominatedNode->Cleanup(true);
+                            if (dominatedNode->Instructions().size() > 0 &&
+                                dominatedNode->Instructions().back()->Type() == Instruction::BREAK)
+                            {
+                                msg("double break detected."); //FIXME
+                            }
+                            dominatedNode->Instructions().push_back(Instruction_ptr(
+                                    new Break(exitNode->Address()))); //FIXME what should this address be?
                         }
-                        dominatedNode->Instructions().push_back(Instruction_ptr(new Break(exitNode->Address()))); //FIXME what should this address be?
 
                         switchInsn->AddStatementNode(dominatedNode);
                         if (isAStartNode)
@@ -1164,6 +1171,8 @@ void SwitchLogicHandler::NodeList(Node_list &blocks)
             {
                 blocks.remove(*n1);
             }
+
+            ControlFlowAnalysis::StructureIfs(switchInsn->Statements());
 
             return;
         }
