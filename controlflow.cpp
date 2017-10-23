@@ -1001,7 +1001,45 @@ int ControlFlowAnalysis::StructureIf(Node_list &blocks, Node_ptr node)
 
         return 1;
     }
+    else if (followerNode->Type() == Node::RETURN)
+    {
 
+        msg("found direct if reverse return at %a\n", node->Address());
+
+        Instruction_ptr expr = node->Instructions().back();
+
+        Expression_ptr ep(expr->Operand(0));
+        ExpressionNegationHelper negExpr;
+        negExpr.negateExpression(ep);
+
+        If *ifInstruction = new If(expr->Address(), ep);
+        ifInstruction->trueNode = followerNode->Copy();
+
+        ifInstruction->trueNode->Cleanup(true);
+
+        node->Instructions().insert(
+                node->Instructions().end(),
+                Instruction_ptr(ifInstruction)
+        );
+
+        node->Instructions().remove(expr);
+        Node_ptr new_node = Node_ptr(
+                new FallThroughNode(jumpNode->Address(), node->Instructions().begin(), node->Instructions().end()));
+        Node_list::iterator it = find(blocks.begin(), blocks.end(), node);
+
+        blocks.insert(it, new_node);
+
+        node->MarkForDeletion();
+
+        new_node->ConnectSuccessor(0, jumpNode);
+
+
+        //fixup preds
+        node->ReplaceSuccessorNodeFromPrecessors(new_node);
+        followerNode->RemovePredecessor(node);
+
+        return 1;
+    }
     else if (node->DominatesNode(followerNode) && followerNode->PredecessorCount() == 1 &&
              (followerNode->Type() == Node::FALL_THROUGH || followerNode->Type() == Node::JUMP) &&
              jumpNode->Address() == followerNode->Successor(0)->Address())

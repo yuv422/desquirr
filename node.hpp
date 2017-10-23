@@ -772,6 +772,20 @@ public:
         Node::print(os);
         os << boost::format("RETURN\n");
     }
+
+    virtual void Cleanup(bool cleanAll)
+    {
+        for (Instruction_list::iterator i = Instructions().begin();
+             i != Instructions().end();
+                )
+        {
+            Instruction_ptr ptr = *i;
+            i++;
+
+            if (ptr->Type() == Instruction::LABEL || ptr->Type() == Instruction::POP)
+                Instructions().remove(ptr);
+        }
+    }
 };/*}}}*/
 
 class CallNode : public TwoWayNode
