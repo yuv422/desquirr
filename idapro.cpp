@@ -43,7 +43,7 @@ std::string get_struct_path(struc_t *struc, int offset, int *pIndex)
                 buffer << '.';
 
             qstring member_name;
-            if (get_member_name2(&member_name, member->id) > 0)
+            if (get_member_name(&member_name, member->id) > 0)
                 buffer << member_name.c_str();
             else
                 buffer << "NO_NAME";
@@ -83,10 +83,10 @@ std::string GetStackVariableName(const insn_t &insn, int operand, int *pIndex)/*
     }
 
 
-    ulong offset = calc_stkvar_struc_offset(func, ea, operand);
+    ulong offset = calc_stkvar_struc_offset(func, insn, operand);
     if (offset == BADADDR)
     {
-        message("ERROR in calc_stkvar_struc_offset(%08lx, %08lx, %d)\n", func->startEA, ea, operand);
+        message("ERROR in calc_stkvar_struc_offset(%08lx, %08lx, %d)\n", func->start_ea, ea, operand);
         return "";
     }
 
@@ -100,7 +100,7 @@ std::string GetStackVariableName(const insn_t &insn, int operand, int *pIndex)/*
 }
 
 
-// returns name such that get_func_name(ea) == name and get_func(ea).startEA+*pIndex == ea
+// returns name such that get_func_name(ea) == name and get_func(ea).start_ea+*pIndex == ea
 // used by GetGlobalVariableName
 std::string GetGlobalCodeLabel(ea_t ea, int *pIndex)/*{{{*/
 {
@@ -112,9 +112,9 @@ std::string GetGlobalCodeLabel(ea_t ea, int *pIndex)/*{{{*/
         message("%p Warning: referenced code offset not in a function\n", ea);
         return "";
     }
-    if (get_func_name2(&name, ea) > 0)
+    if (get_func_name(&name, ea) > 0)
     {
-        *pIndex = ea - func->startEA;
+        *pIndex = ea - func->start_ea;
         return std::string(name.c_str());
     }
     else
@@ -214,9 +214,9 @@ std::string GetGlobalVariableName(ea_t ea, int *pIndex)/*{{{*/
     if (pIndex)
         *pIndex = 0;
 
-    flags_t flags = ::getFlags(ea);
+    flags_t flags = ::get_full_flags(ea);
 
-    if (isCode(flags))
+    if (is_code(flags))
     {
         return GetGlobalCodeLabel(ea, pIndex);
     }
@@ -265,7 +265,7 @@ bool is_local_to_function(ea_t funcea, ea_t ea)
 
 Expression_ptr CreateVariable(const insn_t &insn, int operand)
 {
-    ea_t ea = insn.Operands[operand].addr;
+    ea_t ea = insn.ops[operand].addr;
 
     if (is_local_to_function(insn.ea, ea))
         return CreateLocalCodeReference(ea);
@@ -277,7 +277,7 @@ Expression_ptr CreateGlobalVariable(const insn_t &insn, int operand)
 {
     Expression_ptr expr;
 
-    ea_t ea = insn.Operands[operand].addr;
+    ea_t ea = insn.ops[operand].addr;
     msg("CreateGlobalVariable insn.ez = %a, ea = %a\n", insn.ea, ea);
     int index;
     std::string name = GetGlobalVariableName(ea, &index);
@@ -306,9 +306,9 @@ Expression_ptr CreateStackVariable(insn_t &insn, int operand)/*{{{*/
     {
         // Try to add a stack variable and try again!
 //		message("%p Warning: trying to create stack variable\n", insn.ea);
-        if (!add_stkvar3(insn.Operands[operand], insn.Operands[operand].addr, 0))
+        if (!add_stkvar(insn, insn.ops[operand], insn.ops[operand].addr, 0))
         {
-            message("error in add_stkvar(%08lx, %08lx)\n", insn.Operands[operand].dtyp, insn.Operands[operand].addr);
+            message("error in add_stkvar(%08lx, %08lx)\n", insn.ops[operand].dtype, insn.ops[operand].addr);
             return Expression_ptr();
         }
         if (!op_stkvar(insn.ea, operand))
@@ -360,8 +360,8 @@ const char *IdaPro::GetOptypeString(op_t &op)/*{{{*/
 
 insn_t GetLowLevelInstruction(ea_t address)/*{{{*/
 {
-    // note: decode_insn sets the global 'cmd' variable
-    decode_insn(address);
+    insn_t cmd;
+    decode_insn(&cmd, address);
     return cmd;
 }/*}}}*/
 
@@ -387,10 +387,8 @@ void IdaPro::LoadCallTypeInformation(CallExpression *call)
     if (BADADDR == call->Address())
         return;
 
-    //qtype type, fnames;
     tinfo_t type;
-    //if(!get_tinfo(call->Address(), &type, &fnames))
-    if (!get_tinfo2(call->Address(), &type))
+    if (!get_tinfo(&type, call->Address()))
     {
         message("No type information for function at %p!\n",
                 call->Address());
@@ -461,12 +459,11 @@ void IdaPro::LoadCallTypeInformation(CallExpression *call)
 
 bool search_comment(ea_t ea, const char *searchString)
 {
-    char cmt[1024];
-
-    if (get_cmt(ea, false, cmt, sizeof(cmt)) == -1)
+    qstring cmt;
+    if (get_cmt(&cmt, ea, false) == -1)
         return false;
 
-    if (strstr(cmt, searchString) != NULL)
+    if (strstr(cmt.c_str(), searchString) != NULL)
         return true;
 
     return false;
@@ -474,13 +471,14 @@ bool search_comment(ea_t ea, const char *searchString)
 
 bool comment_get_int(ea_t ea, const char *variable, int *val)
 {
-    char cmt[1024];
+    //char cmt[1024];
+    qstring cmt;
     char *var;
 
-    if (get_cmt(ea, false, cmt, sizeof(cmt)) == -1)
+    if (get_cmt(&cmt, ea, false) == -1)
         return false;
 
-    var = strstr(cmt, variable);
+    var = strstr(cmt.c_str(), variable);
     if (var == NULL)
         return false;
 

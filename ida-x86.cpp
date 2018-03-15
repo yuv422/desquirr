@@ -66,7 +66,7 @@ Expression_ptr GetSibExpression(insn_t &insn, int operand)/*{{{*/
 {
     Expression_ptr result;
 
-    unsigned char sib = insn.Operands[operand].sib & 0xff;
+    unsigned char sib = insn.ops[operand].sib & 0xff;
 
 #if 0
     switch (sib & 0xff)
@@ -167,9 +167,9 @@ static Expression_ptr FromOperand(insn_t &insn, int operand/*,
 {
     Expression_ptr result;
 
-    flags_t flags = ::getFlags(insn.ea);
-    op_t op = insn.Operands[operand];
-    if (::isStkvar(flags, operand))
+    flags_t flags = ::get_full_flags(insn.ea);
+    op_t op = insn.ops[operand];
+    if (::is_stkvar(flags, operand))
     {
         result = CreateStackVariable(insn, operand);
         if (NN_lea == insn.itype)
@@ -177,18 +177,18 @@ static Expression_ptr FromOperand(insn_t &insn, int operand/*,
             result.reset(new UnaryExpression("&", result));
         }
     }
-    else if (::isEnum(flags, operand))
+    else if (::is_enum(flags, operand))
     {
         msg("%p TODO: handle enum!!\n", insn.ea);
     }
-    else if (::isStroff(flags, operand) && op.type == o_displ)
+    else if (::is_stroff(flags, operand) && op.type == o_displ)
     {
         tid_t path[10];
         adiff_t adiff;
-        msg("path_len = %d, offb=%d\n", get_stroff_path(insn.ea, operand, path, &adiff), op.addr);
+        msg("path_len = %d, offb=%d\n", get_stroff_path(path, &adiff, insn.ea, operand), op.addr);
         tid_t memberId = get_member(get_struc(path[0]), op.addr)->id;
 
-        msg("%p TODO: handle struct offset!! '%s'\n", insn.ea, get_member_name2(memberId).c_str());
+        msg("%p TODO: handle struct offset!! '%s'\n", insn.ea, get_member_name(memberId).c_str());
     }
 
     if (!result.get())
@@ -209,17 +209,17 @@ static Expression_ptr FromOperand(insn_t &insn, int operand/*,
                 break;
 
             case o_imm:
-                if (::get_refinfo(insn.ea, operand, &refinfo))
+                if (::get_refinfo(&refinfo, insn.ea, operand))
                 {
                     ea_t address = refinfo.base + op.value;
-                    flags_t flags = ::getFlags(address);
+                    flags_t flags = ::get_full_flags(address);
 
-                    if (isASCII(flags))
+                    if (is_strlit(flags))
                     {
                         result = StringLiteral::CreateFrom(address);
                         break;
                     }
-                    else if (isOff(getFlags(insn.ea), operand))
+                    else if (is_off(get_full_flags(insn.ea), operand))
                     {
                         qstring buf;
                         if (get_ea_name(&buf, address))
@@ -265,7 +265,7 @@ static Expression_ptr FromOperand(insn_t &insn, int operand/*,
                 }
 
                 insn_t insxx = insn;
-                insxx.Operands[operand].addr = op.addr;
+                insxx.ops[operand].addr = op.addr;
                 result = CreateVariable(insxx, operand);
             }
                 if (result.get())
@@ -384,7 +384,7 @@ static Expression_ptr FromOperand(insn_t &insn, int operand/*,
                 }
                 msg("\noperand = %d, op.value_shorts.low = %a, op.value_shorts.high = %a, op.addr = %a, insn.ea = %a, op.type = %d op.hasSIB = %d, op.phrase = %d, op.flags = %x op.dtyp = %d\n",
                     operand, op.value_shorts.low, op.value_shorts.high, op.addr, insn.ea, op.type, op.hasSIB, op.phrase,
-                    op.flags, op.dtyp);
+                    op.flags, op.dtype);
                 if (1)//0 != op.addr)
                 {
                     qstring buf;
@@ -403,20 +403,20 @@ static Expression_ptr FromOperand(insn_t &insn, int operand/*,
 
                     if (gotname)
                     {
-                        if (::isStroff(flags, operand) && op.type == o_displ)
+                        if (::is_stroff(flags, operand) && op.type == o_displ)
                         {
                             tid_t path[10];
                             adiff_t adiff;
-                            msg("path_len = %d, offb=%d\n", get_stroff_path(insn.ea, operand, path, &adiff), op.addr);
+                            msg("path_len = %d, offb=%d\n", get_stroff_path(path, &adiff, insn.ea, operand), op.addr);
                             tid_t memberId = get_member(get_struc(path[0]), op.addr)->id;
 
-                            msg("%p struct offset!! '%s'\n", insn.ea, get_member_name2(memberId).c_str());
+                            msg("%p struct offset!! '%s'\n", insn.ea, get_member_name(memberId).c_str());
 
-                            result.reset(new StructOffset(result, get_member_name2(memberId).c_str()));
+                            result.reset(new StructOffset(result, get_member_name(memberId).c_str()));
 //                            result.reset(new BinaryExpression(
 //                                    result,
 //                                    "+",
-//                                    Expression_ptr(new StructOffset(get_member_name2(memberId).c_str()))) //new GlobalVariable(get_member_name2(memberId).c_str())))
+//                                    Expression_ptr(new StructOffset(get_member_name(memberId).c_str()))) //new GlobalVariable(get_member_name(memberId).c_str())))
 //                            );
                         }
                         else
@@ -537,14 +537,14 @@ void IdaX86::DumpInsn(insn_t &insn)/*{{{*/
 
     for (int i = 0; i < UA_MAXOP; i++)
     {
-        op_t &op = insn.Operands[i];
+        op_t &op = insn.ops[i];
 
         if (op.type == o_void)
             break;
 
 
         msg("  Operands[%i]={type=%s, dtyp=%i, reg/phrase=%s/%i, value=%i, addr=%08x",
-            i, GetOptypeString(op), op.dtyp,
+            i, GetOptypeString(op), op.dtype,
             RegisterName(op.reg).c_str(),
             op.reg, op.value, op.addr);
         if (op.specval)
@@ -562,20 +562,20 @@ void IdaX86::DumpInsn(insn_t &insn)/*{{{*/
 bool OperandIsRegister(insn_t &insn, int operand, int reg)/*{{{*/
 {
     return
-            o_reg == insn.Operands[operand].type &&
-            reg == insn.Operands[operand].reg;
+            o_reg == insn.ops[operand].type &&
+            reg == insn.ops[operand].reg;
 }/*}}}*/
 
 bool OperandIsImmediate(insn_t &insn, int operand, unsigned value)/*{{{*/
 {
     return
-            o_imm == insn.Operands[operand].type &&
-            value == insn.Operands[operand].value;
+            o_imm == insn.ops[operand].type &&
+            value == insn.ops[operand].value;
 }/*}}}*/
 
 bool Equals(op_t &a, op_t &b)/*{{{*/
 {
-    if (a.type != b.type || a.dtyp != b.dtyp)
+    if (a.type != b.type || a.dtype != b.dtype)
         return false;
 
     switch (a.type)
@@ -636,10 +636,10 @@ protected:
     void SetReturnType(func_t *pFunc)
     {
         tinfo_t type;
-        if (!get_tinfo2(pFunc->startEA, &type))
+        if (!get_tinfo(&type, pFunc->start_ea))
         {
             message("No type information for function at %p!\n",
-                    pFunc->startEA);
+                    pFunc->start_ea);
             functionReturnType = INT16;
             return;
         }
@@ -657,13 +657,13 @@ protected:
         else
             setbits(IS_16_BIT);
 
-        for (ea_t address = function->startEA;
-             address < function->endEA;
+        for (ea_t address = function->start_ea;
+             address < function->end_ea;
              address = get_item_end(address))
         {
-            flags_t flags = getFlags(address);
+            flags_t flags = get_full_flags(address);
 
-            if (hasRef(flags) /*|| has_any_name(flags)*/)
+            if (has_xref(flags) /*|| has_any_name(flags)*/)
             {
                 int index;
                 std::string name = GetLocalCodeLabel(address, &index);
@@ -673,11 +673,11 @@ protected:
                 }
                 else
                 {
-                    if (address == function->startEA)
+                    if (address == function->start_ea)
                     {
                         qstring func_name;
                         tinfo_t type;
-                        if (!get_tinfo2(address, &type))
+                        if (!get_tinfo(&type, address))
                         {
                             message("No type information for function at %p!\n",
                                     address);
@@ -694,16 +694,16 @@ protected:
                 }
             }
 
-            if (!isCode(flags))
+            if (!is_code(flags))
             {
-                if (isUnknown(flags))
+                if (is_unknown(flags))
                 {
                     msg("Warning, converting non-code bytes in function at offset %p\n",
                         address);
 
                     create_insn(address); //ERIC ua_code(address);
-                    flags = getFlags(address);
-                    if (!isCode(flags))
+                    flags = get_full_flags(address);
+                    if (!is_code(flags))
                     {
                         msg("Error, could not convert non-code bytes in function at offset %p\n",
                             address);
@@ -744,7 +744,7 @@ protected:
 #if 0
         for (int i = 0; i < UA_MAXOP; i++)
         {
-            op_t& op = insn.Operands[i];
+            op_t& op = insn.ops[i];
 
             if (op.type == o_void)
                 break;
@@ -757,8 +757,8 @@ protected:
         }
 #endif
 
-        switch_info_ex_t si;
-        if (get_switch_info_ex(insn.ea, &si, sizeof(si)) >= 0)
+        switch_info_t si;
+        if (get_switch_info(&si, insn.ea) >= 0)
         {
             msg("switch handler get here\n");
             if (OnSwitchInfo(insn, si))
@@ -787,10 +787,10 @@ protected:
                     break;
                 mFlagUpdate = insn;
                 //DumpInsn(insn);
-                if ((insn.Operands[0].type == o_mem ||
-                     insn.Operands[0].type == o_displ) &&
-                    insn.Operands[1].type == o_imm &&
-                    (int) insn.Operands[1].value == -1)
+                if ((insn.ops[0].type == o_mem ||
+                     insn.ops[0].type == o_displ) &&
+                    insn.ops[1].type == o_imm &&
+                    (int) insn.ops[1].value == -1)
                 {
                     //
                     // or memory, -1
@@ -807,9 +807,9 @@ protected:
                 else
                 {
                     /*
-                      if(insn.Operands[0].type == o_reg &&
-                      insn.Operands[1].type == o_reg &&
-                      insn.Operands[0].reg == insn.Operands[1].reg)
+                      if(insn.ops[0].type == o_reg &&
+                      insn.ops[1].type == o_reg &&
+                      insn.ops[0].reg == insn.ops[1].reg)
                       {
                           // eg.
                           // or ax, ax
@@ -1056,14 +1056,14 @@ protected:
                 ->
             eax ? 8 : 0
         */
-        if (o_reg != insn.Operands[0].type)
+        if (o_reg != insn.ops[0].type)
             return false;
 
         insn_vector idiom;
         if (!GetInstructions(3, idiom))
             return false;
 
-        unsigned short reg = insn.Operands[0].reg;
+        unsigned short reg = insn.ops[0].reg;
 
         if (NN_sbb == idiom[1].itype &&
             OperandIsRegister(idiom[1], 0, reg) &&
@@ -1185,7 +1185,7 @@ protected:
         */
 
         if (OperandIsRegister(idiom[index + 0], 0, REG_CX) &&
-            o_imm == idiom[index + 0].Operands[1].type &&
+            o_imm == idiom[index + 0].ops[1].type &&
             NN_movs == idiom[index + 1].itype &&
             (idiom[index + 1].auxpref & aux_rep)
                 )
@@ -1197,7 +1197,7 @@ protected:
                 DumpInsn(idiom[i]);
             }*/
 
-            unsigned long value = idiom[index + 0].Operands[1].value * 4;
+            unsigned long value = idiom[index + 0].ops[1].value * 4;
             int used_instructions = index + 2;
 
             //
@@ -1207,9 +1207,9 @@ protected:
             {
                 if (NN_movs == idiom[i].itype)
                 {
-                    if (dt_byte == idiom[i].Operands[0].dtyp)
+                    if (dt_byte == idiom[i].ops[0].dtype)
                         value++;
-                    else if (dt_word == idiom[i].Operands[0].dtyp)
+                    else if (dt_word == idiom[i].ops[0].dtype)
                         value += 2;
                     else
                         break;
@@ -1266,7 +1266,7 @@ protected:
 
             if (NN_sub == idiom[2].itype &&
                 OperandIsRegister(idiom[2], 0, REG_SP) &&
-                o_imm == idiom[2].Operands[1].type)
+                o_imm == idiom[2].ops[1].type)
             {
                 prologue_size++;
             }
@@ -1274,13 +1274,13 @@ protected:
             for (int i = prologue_size; i < 5; i++)
             {
                 if (NN_push == idiom[i].itype &&
-                    o_imm != idiom[i].Operands[0].type)
+                    o_imm != idiom[i].ops[0].type)
                 {
-                    flags_t flags = ::getFlags(idiom[i].ea);
-                    if (!::isStkvar(flags, 0)) // push [bp+arg_0] these aren't part of the prolog
+                    flags_t flags = ::get_full_flags(idiom[i].ea);
+                    if (!::is_stkvar(flags, 0)) // push [bp+arg_0] these aren't part of the prolog
                     {
                         msg("%p Register variable: %s\n", idiom[i].ea,
-                            Register::Name(idiom[i].Operands[0].reg).c_str());
+                            Register::Name(idiom[i].ops[0].reg).c_str());
                         prologue_size++;
                     }
                 }
@@ -1307,14 +1307,14 @@ protected:
             return false;
 
         if (NN_pop == idiom[1].itype &&
-            o_reg == idiom[1].Operands[0].type
+            o_reg == idiom[1].ops[0].type
                 )
         {
-            if (!is_segreg(idiom[1].Operands[0].reg)) //ERIC only push/pop for normal registers. discard segment reg.
+            if (!is_segreg(idiom[1].ops[0].reg)) //ERIC only push/pop for normal registers. discard segment reg.
             {
                 Insert(new Assignment(
                         insn.ea,
-                        Register::Create(idiom[1].Operands[0].reg),
+                        Register::Create(idiom[1].ops[0].reg),
                         FromOperand(idiom[0], 0)
                 ));
             }
@@ -1337,12 +1337,12 @@ protected:
             return false;
 
         if (NN_mov == idiom[0].itype &&
-            o_reg == idiom[0].Operands[0].type &&
-            idiom[0].Operands[1].value == 0)
+            o_reg == idiom[0].ops[0].type &&
+            idiom[0].ops[1].value == 0)
         {
             RegisterValue newReg, lowReg;
 
-            switch (idiom[0].Operands[0].reg)
+            switch (idiom[0].ops[0].reg)
             {
                 case R_ah : newReg = REG_AX;
                     lowReg = REG_AL;
@@ -1386,32 +1386,32 @@ protected:
             return false;
 
         if (NN_mov == idiom[1].itype &&
-            o_reg == idiom[0].Operands[0].type &&
-            o_reg == idiom[1].Operands[0].type &&
-            idiom[1].Operands[1].value == 0
+            o_reg == idiom[0].ops[0].type &&
+            o_reg == idiom[1].ops[0].type &&
+            idiom[1].ops[1].value == 0
                 )
         {
             RegisterValue newReg;
 
-            switch (idiom[0].Operands[0].reg)
+            switch (idiom[0].ops[0].reg)
             {
                 case R_al :
-                    if (idiom[1].Operands[0].reg != R_ah)
+                    if (idiom[1].ops[0].reg != R_ah)
                         return false;
                     newReg = REG_AX;
                     break;
                 case R_bl :
-                    if (idiom[1].Operands[0].reg != R_bh)
+                    if (idiom[1].ops[0].reg != R_bh)
                         return false;
                     newReg = REG_BX;
                     break;
                 case R_cl :
-                    if (idiom[1].Operands[0].reg != R_ch)
+                    if (idiom[1].ops[0].reg != R_ch)
                         return false;
                     newReg = REG_CX;
                     break;
                 case R_dl :
-                    if (idiom[1].Operands[0].reg != R_dh)
+                    if (idiom[1].ops[0].reg != R_dh)
                         return false;
                     newReg = REG_DX;
                     break;
@@ -1444,11 +1444,11 @@ protected:
             return false;
 
         if (NN_mov == idiom[0].itype &&
-            o_reg == idiom[0].Operands[0].type)
+            o_reg == idiom[0].ops[0].type)
         {
             RegisterValue newReg;
 
-            switch (idiom[0].Operands[0].reg)
+            switch (idiom[0].ops[0].reg)
             {
                 case R_al :
                     newReg = REG_AX;
@@ -1498,7 +1498,7 @@ protected:
 
         // We already know that the first operation is XOR reg,reg
 
-        unsigned short reg = idiom[0].Operands[0].reg;
+        unsigned short reg = idiom[0].ops[0].reg;
 
         if ((REG_AX == reg || REG_BX == reg || REG_CX == reg || REG_DX == reg) &&
             NN_cmp == idiom[1].itype &&
@@ -1595,24 +1595,24 @@ protected:
         if (NN_or == idiom[0].itype &&
             NN_jge == idiom[1].itype &&
             NN_neg == idiom[2].itype &&
-            // idiom[1].Operands[0].addr == idiom[3].ea &&
-            idiom[0].Operands[0].type == o_reg &&
-            idiom[0].Operands[1].type == o_reg &&
-            idiom[0].Operands[0].reg == idiom[0].Operands[1].reg &&
-            idiom[2].Operands[0].type == o_reg &&
-            idiom[2].Operands[0].reg == idiom[0].Operands[0].reg)
+            // idiom[1].ops[0].addr == idiom[3].ea &&
+            idiom[0].ops[0].type == o_reg &&
+            idiom[0].ops[1].type == o_reg &&
+            idiom[0].ops[0].reg == idiom[0].ops[1].reg &&
+            idiom[2].ops[0].type == o_reg &&
+            idiom[2].ops[0].reg == idiom[0].ops[0].reg)
         {
             msg("found idiom neg dx dx=abs(dx)\n");
 
             CallExpression *call = new CallExpression(Expression_ptr(new GlobalVariable("abs")));
 
-            call->AddParameter(Expression_ptr(new Register(idiom[0].Operands[0].reg))); //fixme get reg from operand.
+            call->AddParameter(Expression_ptr(new Register(idiom[0].ops[0].reg))); //fixme get reg from operand.
             call->SetFinishedAddingParameters();
 
             Insert(
                     new Assignment(
                             insn.ea,
-                            Expression_ptr(new Register(idiom[0].Operands[0].reg)),
+                            Expression_ptr(new Register(idiom[0].ops[0].reg)),
                             Expression_ptr(call)
                     ));
 
@@ -1708,7 +1708,7 @@ protected:
             ) &&
             (idiom[2].auxpref & aux_rep) &&
             NN_cmps == idiom[2].itype &&
-            dt_byte == idiom[2].Operands[0].dtyp &&
+            dt_byte == idiom[2].ops[0].dtype &&
             NN_jz == idiom[3].itype
                 )
         {
@@ -1811,9 +1811,9 @@ protected:
         if (OperandIsRegister(idiom[0], 0, REG_AL) &&
                 OperandIsRegister(idiom[0], 1, REG_AH) &&
                 NN_mov  == idiom[1].itype &&
-                o_displ == idiom[1].Operands[0].type &&
-                dt_word == idiom[1].Operands[0].dtyp &&
-                0 == idiom[1].Operands[0].value &&
+                o_displ == idiom[1].ops[0].type &&
+                dt_word == idiom[1].ops[0].dtyp &&
+                0 == idiom[1].ops[0].value &&
                  OperandIsRegister(idiom[1], 1, REG_AX)
                 )
         {
@@ -1826,7 +1826,7 @@ protected:
                         FromOperand(idiom[0], 1)));
 
             // (*reg+x+1) = al
-            idiom[1].Operands[0].addr++;
+            idiom[1].ops[0].addr++;
             Insert(new Assignment(
                         insn.ea,
                         FromOperand(idiom[1], 0),
@@ -1850,41 +1850,41 @@ protected:
             return false;
 
         // We know that the first instruction is MOV
-        if (o_reg == idiom[0].Operands[0].type &&
-            o_imm == idiom[0].Operands[1].type &&
+        if (o_reg == idiom[0].ops[0].type &&
+            o_imm == idiom[0].ops[1].type &&
             NN_mov == idiom[1].itype &&
-            o_reg == idiom[1].Operands[1].type &&
-            idiom[0].Operands[0].reg == idiom[1].Operands[1].reg)
+            o_reg == idiom[1].ops[1].type &&
+            idiom[0].ops[0].reg == idiom[1].ops[1].reg)
         {
-            ea_t vtbl = idiom[0].Operands[1].value;
+            ea_t vtbl = idiom[0].ops[1].value;
 
-            flags_t vtbl_flags = getFlags(vtbl);
-            if (isData(vtbl_flags))
+            flags_t vtbl_flags = get_full_flags(vtbl);
+            if (is_data(vtbl_flags))
             {
                 msg("%p Possible Borland class here\n", insn.ea);
 
                 for (;;)
                 {
-                    if (vtbl != idiom[0].Operands[1].value && hasRef(getFlags(vtbl)))
+                    if (vtbl != idiom[0].ops[1].value && has_xref(get_full_flags(vtbl)))
                     {
                         break;
                     }
 
-                    ea_t offset = get_long(vtbl);
+                    ea_t offset = get_dword(vtbl);
                     if (0 == offset || 0xffffffff == offset)
                         break;
 
-                    flags_t flags = getFlags(offset);
+                    flags_t flags = get_full_flags(offset);
 
-                    if (isFunc(flags))
+                    if (is_func(flags))
                     {
                         //msg("Function: %p\n", offset);
                     }
-                    else if (isStruct(flags))
+                    else if (is_struct(flags))
                     {
                         ushort tpName = get_word(offset + 6);
                         ea_t name_offset = offset + tpName;
-                        if (isASCII(get_item_flag(BADADDR, 0, name_offset, 0)))
+                        if (is_strlit(get_item_flag(BADADDR, 0, name_offset, 0)))
                         {
                             ulong type = get_str_type(name_offset);
                             std::string name = StringLiteral::GetString(name_offset, type);
@@ -1972,7 +1972,7 @@ protected:
 
         tinfo_t type;
         //if(!get_tinfo(call->Address(), &type, &fnames))
-        if (!get_tinfo2(callee, &type))
+        if (!get_tinfo(&type, callee))
         {
             message("No type information for function at %p!\n",
                     call->Address());
@@ -1999,14 +1999,14 @@ protected:
                      pop cx   ; optional, same register again
                      */
                 if (NN_pop == next.itype &&
-                    o_reg == next.Operands[0].type &&
-                    REG_BP != next.Operands[0].reg)
+                    o_reg == next.ops[0].type &&
+                    REG_BP != next.ops[0].reg)
                 {
                     msg("%p found idiom: call/pop\n", insn.ea);
                     Erase(next_item);
 
                     int pop_count = 1;
-                    unsigned short reg = next.Operands[0].reg;
+                    unsigned short reg = next.ops[0].reg;
 
                     next_item++;
                     if (next_item != Instructions().end() &&
@@ -2031,29 +2031,29 @@ protected:
                      */
                 else if (NN_add == next.itype &&
                          OperandIsRegister(next, 0, REG_SP) &&
-                         o_imm == next.Operands[1].type)
+                         o_imm == next.ops[1].type)
                 {
                     msg("%p found idiom: call/add sp\n", insn.ea);
                     int shift = -1;
 
-                    if (dt_word == next.Operands[0].dtyp)
+                    if (dt_word == next.ops[0].dtype)
                         shift = 1;
-                    else if (dt_dword == next.Operands[0].dtyp)
+                    else if (dt_dword == next.ops[0].dtype)
                         shift = 2;
                     else
                         msg("%p Unexpected word size\n", next.ea);
 
                     if (shift >= 0)
                     {
-                        if (next.Operands[1].value > 0x100)
+                        if (next.ops[1].value > 0x100)
                         {
                             msg("%p Error! Very large or negative stack change: %i\n",
                                 next.ea,
-                                next.Operands[1].value);
+                                next.ops[1].value);
                         }
                         else
                         {
-                            call->ParameterCountFromCall(next.Operands[1].value >> shift);
+                            call->ParameterCountFromCall(next.ops[1].value >> shift);
                             Erase(next_item);
                         }
                     }
@@ -2127,8 +2127,8 @@ protected:
 
     void OnAnd(insn_t &insn)/*{{{*/
     {
-        if (o_imm == insn.Operands[1].type &&
-            0 == insn.Operands[1].value)
+        if (o_imm == insn.ops[1].type &&
+            0 == insn.ops[1].value)
         {
             // AND x, 0  ->  x = 0
             Replace(new Assignment(
@@ -2151,7 +2151,7 @@ protected:
         if (TryPushPop(insn))
             return;
 
-        if (insn.Operands[0].reg == 30) //ERIC hack push cs
+        if (insn.ops[0].reg == 30) //ERIC hack push cs
         {
             Erase(Iterator());
             return;
@@ -2227,7 +2227,7 @@ protected:
             case NN_or:
                 if ((NN_jz == insn.itype || NN_jnz == insn.itype || NN_jge == insn.itype || NN_jl == insn.itype ||
                      NN_jle == insn.itype || NN_jg == insn.itype) &&
-                    Equals(mFlagUpdate.Operands[0], mFlagUpdate.Operands[1]))
+                    Equals(mFlagUpdate.ops[0], mFlagUpdate.ops[1]))
                 {
                     msg("%p jz/jnz after or-with-self\n", insn.ea);
                     ReplaceFromFlagUpdate(insn, operation, signness);
@@ -2236,7 +2236,7 @@ protected:
                 return;
 
             case NN_test:
-                if (Equals(mFlagUpdate.Operands[0], mFlagUpdate.Operands[1]))
+                if (Equals(mFlagUpdate.ops[0], mFlagUpdate.ops[1]))
                 {
                     /*
                           test eax, eax
@@ -2288,7 +2288,7 @@ protected:
     {
         mFlagUpdate = insn;
 
-        if (Equals(insn.Operands[0], insn.Operands[1]))
+        if (Equals(insn.ops[0], insn.ops[1]))
         {
             if (TryXorCmpSet(insn))
                 return;
@@ -2460,13 +2460,13 @@ protected:
 
     void OnXchg(insn_t &insn)/*{{{*/
     {
-        if (o_reg == insn.Operands[0].type &&
-            o_reg == insn.Operands[1].type &&
-            insn.Operands[0].dtyp == insn.Operands[1].dtyp)
+        if (o_reg == insn.ops[0].type &&
+            o_reg == insn.ops[1].type &&
+            insn.ops[0].dtype == insn.ops[1].dtype)
         {
             // xchg ah, al -> bswap_16(ax)
-            if (dt_byte == insn.Operands[0].dtyp &&
-                (insn.Operands[0].reg & 3) == (insn.Operands[1].reg & 3))
+            if (dt_byte == insn.ops[0].dtype &&
+                (insn.ops[0].reg & 3) == (insn.ops[1].reg & 3))
             {
                 CallExpression *call = new CallExpression(Expression_ptr(new GlobalVariable("bswap_16")));
 
@@ -2491,12 +2491,12 @@ protected:
     std::vector<std::string> ExtractCases(boost::shared_ptr<Instruction> &shared_ptr)
     {
         std::vector<std::string> cases;
-        char cmt[1024];
+        qstring cmt;
 
-        if (get_cmt((*shared_ptr).Address(), true, cmt, sizeof(cmt)-1) == -1)
+        if (get_cmt(&cmt, (*shared_ptr).Address(), true) == -1)
             return cases;
 
-        std::string str(cmt);
+        std::string str(cmt.c_str());
         str = str + "\n";
 
         if (str.find("default case", 0) != std::string::npos)
@@ -2532,13 +2532,13 @@ protected:
         return cases;
     }
 
-    bool OnSwitchInfo(insn_t &insn, switch_info_ex_t &si)/*{{{*/
+    bool OnSwitchInfo(insn_t &insn, switch_info_t &si)/*{{{*/
     {
         if (NN_jmpni == insn.itype)// &&
-            /*	o_mem    == insn.Operands[0].type &&
-                si.jumps == insn.Operands[0].addr &&
-                insn.Operands[0].hasSIB &&
-                (insn.Operands[0].sib & 0xff) == 0x85)*/
+            /*	o_mem    == insn.ops[0].type &&
+                si.jumps == insn.ops[0].addr &&
+                insn.ops[0].hasSIB &&
+                (insn.ops[0].sib & 0xff) == 0x85)*/
         {
             // Erase instructions in switch header
             for (Instruction_list::iterator item = Iterator();
@@ -2549,7 +2549,7 @@ protected:
             }
 
             int i = 0;
-            //ulong address = get_long(si.jumps);
+            //ulong address = get_dword(si.jumps);
             ulong address = get_word(si.jumps) * 0x10 + get_word(si.jumps + 2);
             xrefblk_t xr;
             bool ok = xr.first_from(insn.ea, XREF_ALL);
@@ -2573,7 +2573,7 @@ protected:
                     if (++i == si.ncases)
                         break;
 
-                    //address = get_long(si.jumps + 4*i);
+                    //address = get_dword(si.jumps + 4*i);
                     xr.next_from();
                     address = xr.to;
                     msg("next case addr = %a\n", address);
@@ -2699,27 +2699,27 @@ void IdaX86::TryBorlandThrow(DataFlowAnalysis * /*analysis*/, /*{{{*/
                 if (0 == strcmp(exception_address->Operation(), "&") &&
                         INVALID_ADDR != offset)
                 {
-                    flags_t flags = getFlags(offset);
+                    flags_t flags = get_full_flags(offset);
                     flags_t type_flags;
                     Addr type_offset = offset + get_word(offset + 6);
 
-                    if (isStruct(flags))
+                    if (is_struct(flags))
                     {
                         type_flags = get_item_flag(INVALID_ADDR, 0, type_offset, 0);
                     }
                     else
                     {
-                        if (isData(flags))
+                        if (is_data(flags))
                         {
                             do_unknown(type_offset, true);
                         }
 
                         // TODO: convert to struct, not just string
                         make_ascii_string(type_offset, 0, ASCSTR_C);
-                        type_flags = getFlags(type_offset);
+                        type_flags = get_full_flags(type_offset);
                     }
 
-                    if (isASCII(type_flags))
+                    if (is_strlit(type_flags))
                     {
                         ulong string_type = get_str_type(type_offset);
                         std::string data_type =

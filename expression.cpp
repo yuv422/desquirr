@@ -185,10 +185,10 @@ Expression_ptr StringLiteral::CreateFrom(ea_t address)/*{{{*/
 
 std::string StringLiteral::GetString(ea_t address, ulong type)/*{{{*/
 {
-    size_t len = get_max_ascii_length(address, type, false);
-    boost::shared_array<char> str(new char[len + 1]);
-    get_ascii_contents2(address, len, type, str.get(), len + 1);
-    return str.get();
+    qstring str;
+    size_t len = get_max_strlit_length(address, type, false);
+    get_strlit_contents(&str, address, len, type);
+    return str.c_str();
 }/*}}}*/
 
 std::string StringLiteral::EscapeAsciiString(const std::string &ascstr)/*{{{*/

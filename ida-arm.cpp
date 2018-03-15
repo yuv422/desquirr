@@ -88,14 +88,14 @@ void IdaArm::DumpInsn(insn_t &insn)/*{{{*/
 
     for (int i = 0; i < UA_MAXOP; i++)
     {
-        op_t &op = insn.Operands[i];
+        op_t &op = insn.ops[i];
 
         if (op.type == o_void)
             break;
 
 
         msg("  Operands[%i]={type=%s, dtyp=%i, reg/phrase=%s/%i", //, value=%i, addr=%08x",
-            i, GetOptypeString(op), op.dtyp,
+            i, GetOptypeString(op), op.dtype,
             RegisterName(op.reg).c_str(),
             op.reg/*, op.value, op.addr*/);
 
@@ -137,18 +137,18 @@ static Expression_ptr FromOperand(insn_t &insn, int operand/*,
 				TypeInformation* type = NULL*/)
 {
     Expression_ptr result;
-    flags_t flags = ::getFlags(insn.ea);
+    flags_t flags = ::get_full_flags(insn.ea);
 
     // BUG: isStkvar==true with operand==1  also can mean operand 2 is stkvar.
     // this causes 'add r0, sp, #0x10'  to be incorrectly processed
-    if (::isStkvar(flags, operand))
+    if (::is_stkvar(flags, operand))
     {
         result = ::CreateStackVariable(insn, operand);
         if (result)
             return result;
     }
 
-    op_t op = insn.Operands[operand];
+    op_t op = insn.ops[operand];
 
     switch (op.type)
     {
@@ -200,22 +200,22 @@ static Expression_ptr FromOperand(insn_t &insn, int operand/*,
         case o_mem:
         {
             //msg("entering o_mem decoding: %d/%d\n", has_ti0(insn.ea), has_ti1(insn.ea));
-            ea_t arg = insn.Operands[operand].addr;
-            flags_t flags = getFlags(arg);
+            ea_t arg = insn.ops[operand].addr;
+            flags_t flags = get_full_flags(arg);
             //msg("addr flags: %0lx\n",flags);
-            if (isOff0(flags))
+            if (is_off0(flags))
             {
-                ea_t ptr = get_long(arg);
-                flags = getFlags(ptr);
+                ea_t ptr = get_dword(arg);
+                flags = get_full_flags(ptr);
                 //msg("flags of ptr: %0lx\n", flags);
-                if (isASCII(flags))
+                if (is_strlit(flags))
                 {
                     result = StringLiteral::CreateFrom(ptr);
                 }
                 else
                 {
                     insn_t insxx = insn;
-                    insxx.Operands[operand].addr = ptr;
+                    insxx.ops[operand].addr = ptr;
                     // XXX: maybe use & operator for result?
                     result = CreateGlobalVariable(insxx, operand);
                     if (!result.get())
@@ -226,7 +226,7 @@ static Expression_ptr FromOperand(insn_t &insn, int operand/*,
             }
             else
             {
-                long value = get_long(arg);
+                long value = get_dword(arg);
                 //msg("not offset\n");
                 result.reset(new NumericLiteral(value));
             }
@@ -285,13 +285,13 @@ static Expression_ptr FromOperand(insn_t &insn, int operand/*,
 bool OperandIsRegister(insn_t &insn, int operand)/*{{{*/
 {
     return
-            o_reg == insn.Operands[operand].type;
+            o_reg == insn.ops[operand].type;
 }/*}}}*/
 
 bool OperandIsImmediate(insn_t &insn, int operand)/*{{{*/
 {
     return
-            o_imm == insn.Operands[operand].type;
+            o_imm == insn.ops[operand].type;
 }/*}}}*/
 
 class ArmAnalysis : public Analysis/*{{{*/
@@ -315,29 +315,29 @@ public:
     {
         Instructions().clear();
 
-        for (ea_t address = function->startEA;
-             address < function->endEA;
+        for (ea_t address = function->start_ea;
+             address < function->end_ea;
              address = get_item_end(address))
         {
-            flags_t flags = getFlags(address);
+            flags_t flags = get_full_flags(address);
 
-            if (!isCode(flags))
+            if (!is_code(flags))
             {
-                if (isUnknown(flags))
+                if (is_unknown(flags))
                 {
                     msg("Warning, converting non-code bytes in function at offset %p\n",
                         address);
 
                     create_insn(address); //ERIC ua_code(address);
-                    flags = getFlags(address);
-                    if (!isCode(flags))
+                    flags = get_full_flags(address);
+                    if (!is_code(flags))
                     {
                         msg("Error, could not convert non-code bytes in function at offset %p\n",
                             address);
                         break;
                     }
                 }
-                else if (isData(flags))
+                else if (is_data(flags))
                 {
                     continue;
                 }
@@ -351,7 +351,7 @@ public:
                 }
             }
 
-            if (hasRef(flags) /*|| has_any_name(flags)*/)
+            if (has_xref(flags) /*|| has_any_name(flags)*/)
             {
                 int index;
                 std::string name = GetLocalCodeLabel(address, &index);
@@ -445,7 +445,7 @@ public:
         int op1, op2;
         std::string name("Cond");
 
-        op_t op = mFlagUpdate.Operands[2];
+        op_t op = mFlagUpdate.ops[2];
 
         if (op.type == o_void)
         {
@@ -624,7 +624,7 @@ public:
 
     void OnOperator(insn_t &insn, const char *operation, int operand1, int operand2)/*{{{*/
     {
-        op_t op = insn.Operands[operand2];
+        op_t op = insn.ops[operand2];
 
         if (op.type == o_void)
         {
@@ -674,7 +674,7 @@ public:
         mFlagUpdateOp = operation;
         mFlagUpdateItem = Instructions().end();
 
-        if (insn.Operands[1].type == o_imm && insn.Operands[1].value == 0)
+        if (insn.ops[1].type == o_imm && insn.ops[1].value == 0)
         {
             Replace(new Assignment(
                     insn.ea,
@@ -753,7 +753,7 @@ public:
         if (insn.segpref != cAL)
             InsertConditional(insn);
 
-        if (insn.Operands[0].type == o_reg && insn.Operands[0].reg == REG_PC)
+        if (insn.ops[0].type == o_reg && insn.ops[0].reg == REG_PC)
         {
             Replace(new Assignment(
                     insn.ea,
@@ -794,12 +794,12 @@ public:
     void OnMla(insn_t &insn)/*{{{*/
     {
 
-        if (insn.Operands[2].type != o_idpspec1)
+        if (insn.ops[2].type != o_idpspec1)
         {
             msg("ERROR: expected MLA op2=o_tworeg\n");
             return;
         }
-        op_t op2 = insn.Operands[2];
+        op_t op2 = insn.ops[2];
         // reg       = firstreg
         // specflag1 = secreg
 
@@ -846,7 +846,7 @@ public:
         else
         {
             int op1, op2;
-            op_t op = mFlagUpdate.Operands[2];
+            op_t op = mFlagUpdate.ops[2];
 
             if (op.type == o_void)
             {
@@ -911,7 +911,7 @@ public:
             InsertConditional(insn);
         // BX LR is return
 
-        if (REG_LR == insn.Operands[0].reg)
+        if (REG_LR == insn.ops[0].reg)
         {
             Replace(
                     new Return(insn.ea, Register::Create(0))
@@ -935,13 +935,13 @@ public:
         if (insn.segpref != cAL)
             InsertConditional(insn);
 
-        if (insn.Operands[1].type == o_displ
-            && insn.Operands[1].reg == REG_SP
-            && insn.Operands[1].addr == 4
+        if (insn.ops[1].type == o_displ
+            && insn.ops[1].reg == REG_SP
+            && insn.ops[1].addr == 4
             && (insn.auxpref & (aux_postidx)) == aux_postidx)
         {
             // LDR     PC, [SP],#4
-            int regnr = insn.Operands[0].reg;
+            int regnr = insn.ops[0].reg;
             if (regnr == REG_PC)
             {
                 // Return
@@ -952,7 +952,7 @@ public:
                 Replace(new Pop(insn.ea, ::FromOperand(insn, 0)));
             }
         }
-        else if (insn.Operands[0].reg == REG_PC)
+        else if (insn.ops[0].reg == REG_PC)
         {
             // jumptable
             message("ERROR - jumptable not yet implemented\n");
@@ -973,8 +973,8 @@ public:
 
     void OnLdm(insn_t &insn)/*{{{*/
     {
-        if (o_reg != insn.Operands[0].type &&
-            o_idpspec2 != insn.Operands[1].type)
+        if (o_reg != insn.ops[0].type &&
+            o_idpspec2 != insn.ops[1].type)
         {
             msg("%p Malformed LDM instruction\n", insn.ea);
             DumpInsn(insn);
@@ -982,7 +982,7 @@ public:
         }
 
         if ((insn.auxpref & aux_postidx) != 0 &&        // means that the W and U bits are set, I hope
-            REG_SP == insn.Operands[0].reg)
+            REG_SP == insn.ops[0].reg)
         {
             //
             // Push a bunch of registers on the stack
@@ -994,7 +994,7 @@ public:
             //  LDMFD   SP, {R4-R11,SP,PC}
             //
             for (RegisterIndex i = 0; i < IdaArm::NR_NORMAL_REGISTERS; i++)
-                if (insn.Operands[1].specval & (1 << i))
+                if (insn.ops[1].specval & (1 << i))
                 {
                     if (i == IdaArm::PC)
                     { // POP of PC equals return. Implicit return R0
@@ -1013,9 +1013,9 @@ public:
             Erase(Iterator());
         }
         else if ((insn.auxpref & (aux_postidx | aux_negoff)) == aux_negoff
-                 && 11 == insn.Operands[0].reg
-                 && insn.Operands[1].type == o_idpspec2    // reglist
-                 && (insn.Operands[1].specval & (1 << 13)) // restores SP
+                 && 11 == insn.ops[0].reg
+                 && insn.ops[1].type == o_idpspec2    // reglist
+                 && (insn.ops[1].specval & (1 << 13)) // restores SP
                 )
         {
             msg("%p ignoring end of function LDM R11, {..SP..}\n", insn.ea);
@@ -1032,9 +1032,9 @@ public:
         if (insn.segpref != cAL)
             InsertConditional(insn);
 
-        if (insn.Operands[1].type == o_displ
-            && insn.Operands[1].reg == REG_SP
-            && insn.Operands[1].addr == -4
+        if (insn.ops[1].type == o_displ
+            && insn.ops[1].reg == REG_SP
+            && insn.ops[1].addr == -4
             && (insn.auxpref & (aux_postidx | aux_wback)) == aux_wback)
         {
             // STR     LR, [SP,#-4]!
@@ -1055,8 +1055,8 @@ public:
 
     void OnStm(insn_t &insn)/*{{{*/
     {
-        if (o_reg != insn.Operands[0].type &&
-            o_idpspec2 != insn.Operands[1].type)
+        if (o_reg != insn.ops[0].type &&
+            o_idpspec2 != insn.ops[1].type)
         {
             msg("%p Malformed STM instruction\n", insn.ea);
             DumpInsn(insn);
@@ -1064,7 +1064,7 @@ public:
         }
 
         if ((aux_wbackldm | aux_negoff) == insn.auxpref &&        // means that the W and P bits are set, I hope
-            REG_SP == insn.Operands[0].reg)
+            REG_SP == insn.ops[0].reg)
         {
             //
             // Push a bunch of registers on the stack
@@ -1075,7 +1075,7 @@ public:
             // note: i is unsigned, there for i< max ; i--
             for (RegisterIndex i = IdaArm::NR_NORMAL_REGISTERS - 1; i < IdaArm::NR_NORMAL_REGISTERS; i--)
             {
-                if (insn.Operands[1].specval & (1 << i))
+                if (insn.ops[1].specval & (1 << i))
                 {
                     Insert(new Push(
                             insn.ea,
@@ -1105,10 +1105,10 @@ public:
     void OnPush(insn_t &insn)
     {
         msg("Enter OnPush\n");
-        if (insn.Operands[0].type == o_idpspec2)
+        if (insn.ops[0].type == o_idpspec2)
         {
             for (RegisterIndex i = 0; i < IdaArm::NR_NORMAL_REGISTERS; i++)
-                if (insn.Operands[0].specval & (1 << i))
+                if (insn.ops[0].specval & (1 << i))
                 {
                     msg("PUSH %d\n", i);
                     Insert(new Push(
@@ -1127,10 +1127,10 @@ public:
 
     void OnPop(insn_t &insn)
     {
-        if (insn.Operands[0].type == o_idpspec2)
+        if (insn.ops[0].type == o_idpspec2)
         {
             for (RegisterIndex i = 0; i < IdaArm::NR_NORMAL_REGISTERS; i++)
-                if (insn.Operands[0].specval & (1 << i))
+                if (insn.ops[0].specval & (1 << i))
                 {
                     if (i == IdaArm::PC)
                     { // POP of PC equals return. Implicit return R0
@@ -1228,17 +1228,17 @@ public:
             OperandIsRegister(idiom[1], 1) &&
             OperandIsImmediate(idiom[0], 2) &&
             OperandIsImmediate(idiom[1], 2) &&
-            idiom[0].Operands[0].reg == idiom[1].Operands[1].reg &&
-            idiom[0].Operands[2].value == idiom[1].Operands[2].value)
+            idiom[0].ops[0].reg == idiom[1].ops[1].reg &&
+            idiom[0].ops[2].value == idiom[1].ops[2].value)
         {
-            msg("%p TryAnd: operand 2: %d, %x\n", insn.ea, idiom[0].Operands[2].type, idiom[0].Operands[2].value);
+            msg("%p TryAnd: operand 2: %d, %x\n", insn.ea, idiom[0].ops[2].type, idiom[0].ops[2].value);
             Insert(new Assignment(
                     insn.ea,
                     ::FromOperand(idiom[1], 0),
                     Expression_ptr(new BinaryExpression(
                             ::FromOperand(idiom[0], 1),
                             "&",
-                            NumericLiteral::Create((1 << (32 - idiom[0].Operands[2].value)) - 1)
+                            NumericLiteral::Create((1 << (32 - idiom[0].ops[2].value)) - 1)
                     ))
             ));
             EraseInstructions(2);
@@ -1254,7 +1254,7 @@ public:
 
     bool TryAddMov(insn_t &insn)/*{{{*/
     {
-        if (insn.Operands[2].type == o_imm && insn.Operands[2].value == 0)
+        if (insn.ops[2].type == o_imm && insn.ops[2].value == 0)
         {
             OnMov(insn);
             return true;
@@ -1264,8 +1264,8 @@ public:
 
     bool TryAddSp(insn_t &insn)/*{{{*/
     {
-        if (OperandIsRegister(insn, 1) && insn.Operands[1].reg == REG_SP
-            && insn.Operands[2].type == o_imm)
+        if (OperandIsRegister(insn, 1) && insn.ops[1].reg == REG_SP
+            && insn.ops[2].type == o_imm)
         {
             OnAddSp(insn);
             return true;
@@ -1287,8 +1287,8 @@ public:
         if (ARM_bx == idiom[1].itype &&
             OperandIsRegister(idiom[0], 0) &&
             OperandIsRegister(idiom[0], 1) &&
-            idiom[0].Operands[0].reg == REG_LR &&
-            idiom[0].Operands[0].reg == REG_PC)
+            idiom[0].ops[0].reg == REG_LR &&
+            idiom[0].ops[0].reg == REG_PC)
         {
             // Result in R0?
             Insert(new Assignment(

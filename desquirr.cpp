@@ -197,7 +197,7 @@ void idaapi term(void)
 // arg & 4:  dump current instruction
 // arg & 8:  process all functions
 // arg & 16: no control analysis
-void idaapi run(int arg)
+bool idaapi run(size_t arg)
 {
     msg("Running The Desquirr decompiler plugin arg=%d\n", arg);
 
@@ -210,7 +210,7 @@ void idaapi run(int arg)
     else
     {
         msg("Unexpected processor module\n");
-        return;
+        return false;
     }
 
     Frontend_ptr frontend(idapro);
@@ -219,13 +219,13 @@ void idaapi run(int arg)
     if (arg & 4)
     {
         idapro->DumpInsn(get_screen_ea());
-        return;
+        return false;
     }
     CodeStyle style = (arg & 1) ? LISTING_STYLE : C_STYLE;
 
     for (func_t *function = (arg & 8) ? get_next_func(0) : get_func(get_screen_ea()); function; function = (arg & 8)
                                                                                                            ? get_next_func(
-                    function->startEA) : 0)
+                    function->start_ea) : 0)
     {
         if (function->flags & FUNC_LIB)
             msg("Warning: Library function\n");
@@ -296,6 +296,8 @@ void idaapi run(int arg)
         }
 
     }
+
+    return true;
 }
 
 //--------------------------------------------------------------------------

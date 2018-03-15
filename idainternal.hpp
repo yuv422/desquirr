@@ -72,9 +72,9 @@ public:
 
     virtual void GenerateCode(std::ostream &os)
     {
-        char buf[1024];
-        generate_disasm_line(mInsn.ea, buf, 1024, 0);
-        os << buf;
+        qstring buf;
+        generate_disasm_line(&buf, mInsn.ea, 0);
+        os << buf.c_str();
 
         return;
     }
